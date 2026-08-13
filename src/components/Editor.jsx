@@ -1,7 +1,6 @@
 import { useState } from "react";
 import Toolbar from "./Toolbar";
-import ParagraphBlock from "./ParagraphBlock";
-import CodeBlock from "./CodeBlock";
+import Block from "./Block";
 
 function Editor() {
   const [blocks, setBlocks] = useState([
@@ -25,14 +24,20 @@ console.log(message);`,
     },
   ]);
 
-  const addBlock = () => {
+  const addBlock = (type) => {
     const newBlock = {
       id: Date.now(),
-      type: "paragraph",
-      content: "New block",
+      type: type,
+      content: type === "code" ? "// Write your code here" : "New paragraph",
     };
 
     setBlocks((previousBlocks) => [...previousBlocks, newBlock]);
+  };
+
+  const deleteBlock = (id) => {
+    setBlocks((previousBlocks) =>
+      previousBlocks.filter((block) => block.id !== id)
+    );
   };
 
   return (
@@ -53,31 +58,29 @@ console.log(message);`,
           System Architecture
         </h1>
 
-        {blocks.map((block) => {
-          if (block.type === "paragraph") {
-            return (
-              <ParagraphBlock
-                key={block.id}
-                content={block.content}
-              />
-            );
-          }
+        {blocks.map((block) => (
+          <Block
+            key={block.id}
+            block={block}
+            onDelete={deleteBlock}
+          />
+        ))}
 
-          if (block.type === "code") {
-            return (
-              <CodeBlock
-                key={block.id}
-                content={block.content}
-              />
-            );
-          }
+        <div className="block-actions">
+          <button
+            className="add-block"
+            onClick={() => addBlock("paragraph")}
+          >
+            + Add Paragraph
+          </button>
 
-          return null;
-        })}
-
-        <button className="add-block" onClick={addBlock}>
-          + Add Block
-        </button>
+          <button
+            className="add-block"
+            onClick={() => addBlock("code")}
+          >
+            + Add Code
+          </button>
+        </div>
       </div>
     </main>
   );
