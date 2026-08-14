@@ -6,18 +6,23 @@ function Editor() {
   const [blocks, setBlocks] = useState([
     {
       id: 1,
-      type: "paragraph",
-      content:
-        "Welcome to SyncDoc. This is a collaborative document editor.",
+      type: "heading",
+      content: "System Architecture",
     },
     {
       id: 2,
       type: "paragraph",
       content:
-        "Multiple users will be able to edit different blocks of this document simultaneously.",
+        "Welcome to SyncDoc. This is a collaborative document editor.",
     },
     {
       id: 3,
+      type: "paragraph",
+      content:
+        "Multiple users will be able to edit different blocks of this document simultaneously.",
+    },
+    {
+      id: 4,
       type: "code",
       content: `const message = "Hello SyncDoc";
 console.log(message);`,
@@ -28,10 +33,18 @@ console.log(message);`,
     const newBlock = {
       id: Date.now(),
       type: type,
-      content: type === "code" ? "// Write your code here" : "New paragraph",
+      content:
+        type === "heading"
+          ? "New Heading"
+          : type === "code"
+          ? "// Write your code here"
+          : "New paragraph",
     };
 
-    setBlocks((previousBlocks) => [...previousBlocks, newBlock]);
+    setBlocks((previousBlocks) => [
+      ...previousBlocks,
+      newBlock,
+    ]);
   };
 
   const deleteBlock = (id) => {
@@ -51,13 +64,6 @@ console.log(message);`,
       <Toolbar />
 
       <div className="editor-content">
-        <h1
-          contentEditable="true"
-          suppressContentEditableWarning={true}
-        >
-          System Architecture
-        </h1>
-
         {blocks.map((block) => (
           <Block
             key={block.id}
@@ -67,6 +73,13 @@ console.log(message);`,
         ))}
 
         <div className="block-actions">
+          <button
+            className="add-block"
+            onClick={() => addBlock("heading")}
+          >
+            + Add Heading
+          </button>
+
           <button
             className="add-block"
             onClick={() => addBlock("paragraph")}
