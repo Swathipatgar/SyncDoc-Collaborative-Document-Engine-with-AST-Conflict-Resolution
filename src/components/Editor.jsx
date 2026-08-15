@@ -53,6 +53,16 @@ console.log(message);`,
     );
   };
 
+  const updateBlock = (id, content) => {
+    setBlocks((previousBlocks) =>
+      previousBlocks.map((block) =>
+        block.id === id
+          ? { ...block, content: content }
+          : block
+      )
+    );
+  };
+
   return (
     <main className="editor">
       <input
@@ -69,6 +79,7 @@ console.log(message);`,
             key={block.id}
             block={block}
             onDelete={deleteBlock}
+            onChange={updateBlock}
           />
         ))}
 
