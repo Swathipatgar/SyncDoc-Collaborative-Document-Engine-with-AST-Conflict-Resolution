@@ -53,7 +53,49 @@ console.log(message);`,
       previousBlocks.filter((block) => block.id !== id)
     );
   };
+const handleFormat = (format) => {
+  if (!activeBlockId) {
+    return;
+  }
 
+  setBlocks((previousBlocks) =>
+    previousBlocks.map((block) => {
+      if (block.id !== activeBlockId) {
+        return block;
+      }
+
+      if (format === "heading1") {
+        return {
+          ...block,
+          type: "heading1",
+        };
+      }
+
+      if (format === "heading2") {
+        return {
+          ...block,
+          type: "heading2",
+        };
+      }
+
+      if (format === "paragraph") {
+        return {
+          ...block,
+          type: "paragraph",
+        };
+      }
+
+      if (format === "code") {
+        return {
+          ...block,
+          type: "code",
+        };
+      }
+
+      return block;
+    })
+  );
+};
   const updateBlock = (id, content) => {
     setBlocks((previousBlocks) =>
       previousBlocks.map((block) =>
@@ -63,6 +105,7 @@ console.log(message);`,
       )
     );
   };
+  
   const [activeBlockId, setActiveBlockId] = useState(null);
 
   const selectBlock = (id) => {
@@ -77,15 +120,17 @@ console.log(message);`,
         defaultValue="System Architecture"
       />
 
-      <Toolbar />
+      <Toolbar onFormat={handleFormat} />
 
       <div className="editor-content">
+
         {activeBlockId && (
   <div className="active-info">
     Selected Block:{" "}
     {blocks.find((block) => block.id === activeBlockId)?.type}
   </div>
 )}
+
         {blocks.map((block) => (
           <Block
   key={block.id}
