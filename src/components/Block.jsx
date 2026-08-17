@@ -2,9 +2,18 @@ import ParagraphBlock from "./ParagraphBlock";
 import CodeBlock from "./CodeBlock";
 import HeadingBlock from "./HeadingBlock";
 
-function Block({ block, onDelete, onChange }) {
+function Block({
+  block,
+  onDelete,
+  onChange,
+  onSelect,
+  isActive,
+}) {
   return (
-    <div className="block-wrapper">
+    <div
+      className={`block-wrapper ${isActive ? "active-block" : ""}`}
+      onClick={() => onSelect(block.id)}
+    >
       {block.type === "heading" && (
         <HeadingBlock
           content={block.content}
@@ -28,7 +37,10 @@ function Block({ block, onDelete, onChange }) {
 
       <button
         className="delete-block"
-        onClick={() => onDelete(block.id)}
+        onClick={(event) => {
+          event.stopPropagation();
+          onDelete(block.id);
+        }}
       >
         Delete
       </button>

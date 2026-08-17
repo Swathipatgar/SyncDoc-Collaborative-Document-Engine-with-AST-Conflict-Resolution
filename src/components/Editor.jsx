@@ -29,6 +29,7 @@ console.log(message);`,
     },
   ]);
 
+
   const addBlock = (type) => {
     const newBlock = {
       id: Date.now(),
@@ -62,6 +63,11 @@ console.log(message);`,
       )
     );
   };
+  const [activeBlockId, setActiveBlockId] = useState(null);
+
+  const selectBlock = (id) => {
+  setActiveBlockId(id);
+};
 
   return (
     <main className="editor">
@@ -74,13 +80,21 @@ console.log(message);`,
       <Toolbar />
 
       <div className="editor-content">
+        {activeBlockId && (
+  <div className="active-info">
+    Selected Block:{" "}
+    {blocks.find((block) => block.id === activeBlockId)?.type}
+  </div>
+)}
         {blocks.map((block) => (
           <Block
-            key={block.id}
-            block={block}
-            onDelete={deleteBlock}
-            onChange={updateBlock}
-          />
+  key={block.id}
+  block={block}
+  onDelete={deleteBlock}
+  onChange={updateBlock}
+  onSelect={selectBlock}
+  isActive={activeBlockId === block.id}
+/>
         ))}
 
         <div className="block-actions">

@@ -180,3 +180,19 @@ body {
 .add-block:hover {
   background: #f5f5f5;
 }
+.block-wrapper {
+  position: relative;
+  padding: 8px;
+  margin: 8px 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+
+.block-wrapper:hover {
+  border-color: #ddd;
+}
+
+.active-block {
+  border-color: #4f46e5;
+  background: #f8f7ff;
+}
