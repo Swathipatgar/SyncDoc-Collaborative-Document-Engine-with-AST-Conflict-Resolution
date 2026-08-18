@@ -1,11 +1,18 @@
-function Header() {
+function Header({ saveStatus }) {
   return (
     <header className="header">
-      <div className="logo">SyncDoc</div>
+      <div className="logo">
+        SyncDoc
+      </div>
 
       <div className="header-right">
-        <span className="status">● Saved</span>
-        <button className="share-btn">Share</button>
+        <span className="status">
+          ● {saveStatus}
+        </span>
+
+        <button className="share-btn">
+          Share
+        </button>
       </div>
     </header>
   );

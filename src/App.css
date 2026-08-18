@@ -196,3 +196,18 @@ body {
   border-color: #4f46e5;
   background: #f8f7ff;
 }
+
+.save-status {
+  font-size: 13px;
+  color: #666;
+  margin: 5px 0 10px;
+}
+
+.title {
+  width: 100%;
+  font-size: 28px;
+  font-weight: 600;
+  border: none;
+  outline: none;
+  margin-bottom: 10px;
+}
