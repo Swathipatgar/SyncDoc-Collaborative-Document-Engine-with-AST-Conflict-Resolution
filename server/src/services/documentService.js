@@ -27,7 +27,16 @@ const getUserDocuments = async (userId) => {
 };
 
 const updateDocument = async (documentId, updates) => {
-  return Document.findByIdAndUpdate(documentId, updates, { new: true });
+  const document = await Document.findById(documentId);
+
+  if (!document) {
+    return null;
+  }
+
+  Object.assign(document, updates);
+  await document.save();
+
+  return document;
 };
 
 module.exports = {
