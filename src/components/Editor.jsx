@@ -4,7 +4,12 @@ import Block from "./Block";
 
 function Editor({ saveStatus, setSaveStatus }) {
   const [title, setTitle] = useState("System Architecture");
-
+  const wordCount = blocks.reduce((total, block) => {
+  return total + block.content.trim().split(/\s+/).filter(Boolean).length;
+}, 0);
+<div className="document-stats">
+  Words: {wordCount}
+</div>
   const [blocks, setBlocks] = useState([
     {
       id: 1,
@@ -150,6 +155,9 @@ console.log(message);`,
         onChange={(event) => setTitle(event.target.value)}
         placeholder="Document title"
       />
+      <div className="document-stats">
+  Words: {wordCount}
+</div>
 
 
       {/* Toolbar */}
