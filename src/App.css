@@ -180,3 +180,44 @@ body {
 .add-block:hover {
   background: #f5f5f5;
 }
+.block-wrapper {
+  position: relative;
+  padding: 8px;
+  margin: 8px 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+
+.block-wrapper:hover {
+  border-color: #ddd;
+}
+
+.active-block {
+  border-color: #4f46e5;
+  background: #f8f7ff;
+}
+
+.save-status {
+  font-size: 13px;
+  color: #666;
+  margin: 5px 0 10px;
+}
+
+.title {
+  width: 100%;
+  font-size: 28px;
+  font-weight: 600;
+  border: none;
+  outline: none;
+  margin-bottom: 10px;
+}
+.document-stats {
+  font-size: 13px;
+  color: #777;
+  margin-bottom: 10px;
+}
+.document-stats {
+  font-size: 13px;
+  color: #777;
+  margin-bottom: 10px;
+}
