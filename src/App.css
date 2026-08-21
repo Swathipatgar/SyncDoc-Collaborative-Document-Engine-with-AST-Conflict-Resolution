@@ -221,3 +221,10 @@ body {
   color: #777;
   margin-bottom: 10px;
 }
+.block-wrapper {
+  cursor: grab;
+}
+
+.block-wrapper:active {
+  cursor: grabbing;
+}

@@ -1,4 +1,4 @@
-\function Toolbar({ onFormat }) {
+function Toolbar({ onFormat }) {
   return (
     <div className="toolbar">
       <button onClick={() => onFormat("bold")}>

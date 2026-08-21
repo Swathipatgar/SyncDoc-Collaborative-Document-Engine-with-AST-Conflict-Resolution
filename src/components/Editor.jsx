@@ -37,8 +37,7 @@ console.log(message);`,
   ]);
 
   const [activeBlockId, setActiveBlockId] = useState(null);
-
-  const [saveStatus, setSaveStatus] = useState("Saved");
+  const [draggedBlockId, setDraggedBlockId] = useState(null);
 
   // Show Saving whenever the document changes
   useEffect(() => {
@@ -47,6 +46,43 @@ console.log(message);`,
     const timer = setTimeout(() => {
       setSaveStatus("Saved");
     }, 800);
+    const handleDragStart = (event, id) => {
+  setDraggedBlockId(id);
+  event.dataTransfer.effectAllowed = "move";
+};
+
+const handleDragOver = (event) => {
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "move";
+};
+
+const handleDrop = (event, targetId) => {
+  event.preventDefault();
+
+  if (!draggedBlockId || draggedBlockId === targetId) {
+    return;
+  }
+
+  setBlocks((previousBlocks) => {
+    const draggedBlock = previousBlocks.find(
+      (block) => block.id === draggedBlockId
+    );
+
+    const remainingBlocks = previousBlocks.filter(
+      (block) => block.id !== draggedBlockId
+    );
+
+    const targetIndex = remainingBlocks.findIndex(
+      (block) => block.id === targetId
+    );
+
+    remainingBlocks.splice(targetIndex, 0, draggedBlock);
+
+    return remainingBlocks;
+  });
+
+  setDraggedBlockId(null);
+};
 
     return () => clearTimeout(timer);
   }, [title, blocks]);
@@ -178,13 +214,16 @@ console.log(message);`,
         {/* Document blocks */}
         {blocks.map((block) => (
           <Block
-            key={block.id}
-            block={block}
-            onDelete={deleteBlock}
-            onChange={updateBlock}
-            onSelect={selectBlock}
-            isActive={activeBlockId === block.id}
-          />
+  key={block.id}
+  block={block}
+  onDelete={deleteBlock}
+  onChange={updateBlock}
+  onSelect={selectBlock}
+  isActive={activeBlockId === block.id}
+  onDragStart={handleDragStart}
+  onDragOver={handleDragOver}
+  onDrop={handleDrop}
+/>
         ))}
 
         {/* Add block buttons */}
