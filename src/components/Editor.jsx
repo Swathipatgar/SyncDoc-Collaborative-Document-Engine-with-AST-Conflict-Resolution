@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import Toolbar from "./Toolbar";
-import Block from "./Block";
+import Block from "./Block.jsx";
 
 function Editor({ saveStatus, setSaveStatus }) {
   const [title, setTitle] = useState("System Architecture");
@@ -119,6 +119,31 @@ const handleDrop = (event, targetId) => {
     }
   };
 
+  const duplicateBlock = (id) => {
+  setBlocks((previousBlocks) => {
+    const index = previousBlocks.findIndex(
+      (block) => block.id === id
+    );
+
+    if (index === -1) {
+      return previousBlocks;
+    }
+
+    const originalBlock = previousBlocks[index];
+
+    const newBlock = {
+      ...originalBlock,
+      id: Date.now(),
+    };
+
+    const updatedBlocks = [...previousBlocks];
+
+    updatedBlocks.splice(index + 1, 0, newBlock);
+
+    return updatedBlocks;
+  });
+};
+
   // Update block content
   const updateBlock = (id, content) => {
     setBlocks((previousBlocks) =>
@@ -217,6 +242,7 @@ const handleDrop = (event, targetId) => {
   key={block.id}
   block={block}
   onDelete={deleteBlock}
+  onDuplicate={duplicateBlock}
   onChange={updateBlock}
   onSelect={selectBlock}
   isActive={activeBlockId === block.id}

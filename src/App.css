@@ -228,3 +228,18 @@ body {
 .block-wrapper:active {
   cursor: grabbing;
 }
+
+.duplicate-block,
+.delete-block {
+  margin-right: 6px;
+  padding: 5px 10px;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  background: white;
+  cursor: pointer;
+}
+
+.duplicate-block:hover,
+.delete-block:hover {
+  background: #f3f3f3;
+}

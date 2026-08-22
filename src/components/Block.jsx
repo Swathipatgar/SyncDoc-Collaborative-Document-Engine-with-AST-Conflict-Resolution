@@ -5,6 +5,7 @@ import HeadingBlock from "./HeadingBlock";
 function Block({
   block,
   onDelete,
+  onDuplicate,
   onChange,
   onSelect,
   isActive,
@@ -75,6 +76,15 @@ function Block({
       >
         Delete
       </button>
+      <button
+  className="duplicate-block"
+  onClick={(event) => {
+    event.stopPropagation();
+    onDuplicate(block.id);
+  }}
+>
+  Duplicate
+</button>
     </div>
   );
 }
