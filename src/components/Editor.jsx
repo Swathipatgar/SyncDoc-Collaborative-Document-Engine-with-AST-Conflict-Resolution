@@ -4,12 +4,7 @@ import Block from "./Block.jsx";
 
 function Editor({ saveStatus, setSaveStatus }) {
   const [title, setTitle] = useState("System Architecture");
-  const wordCount = blocks.reduce((total, block) => {
-  return total + block.content.trim().split(/\s+/).filter(Boolean).length;
-}, 0);
-<div className="document-stats">
-  Words: {wordCount}
-</div>
+
   const [blocks, setBlocks] = useState([
     {
       id: 1,
@@ -38,6 +33,20 @@ console.log(message);`,
 
   const [activeBlockId, setActiveBlockId] = useState(null);
   const [draggedBlockId, setDraggedBlockId] = useState(null);
+  
+
+  const [history, setHistory] = useState([]);
+  const [future, setFuture] = useState([]);
+  // Word count
+  const wordCount = blocks.reduce((total, block) => {
+    return (
+      total +
+      block.content
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean).length
+    );
+  }, 0);
 
   // Show Saving whenever the document changes
   useEffect(() => {
@@ -46,80 +55,50 @@ console.log(message);`,
     const timer = setTimeout(() => {
       setSaveStatus("Saved");
     }, 800);
-    const handleDragStart = (event, id) => {
-  setDraggedBlockId(id);
-  event.dataTransfer.effectAllowed = "move";
-};
-
-const handleDragOver = (event) => {
-  event.preventDefault();
-  event.dataTransfer.dropEffect = "move";
-};
-
-const handleDrop = (event, targetId) => {
-  event.preventDefault();
-
-  if (!draggedBlockId || draggedBlockId === targetId) {
-    return;
-  }
-
-  setBlocks((previousBlocks) => {
-    const draggedBlock = previousBlocks.find(
-      (block) => block.id === draggedBlockId
-    );
-
-    const remainingBlocks = previousBlocks.filter(
-      (block) => block.id !== draggedBlockId
-    );
-
-    const targetIndex = remainingBlocks.findIndex(
-      (block) => block.id === targetId
-    );
-
-    remainingBlocks.splice(targetIndex, 0, draggedBlock);
-
-    return remainingBlocks;
-  });
-
-  setDraggedBlockId(null);
-};
 
     return () => clearTimeout(timer);
-  }, [title, blocks]);
+  }, [title, blocks, setSaveStatus]);
 
   // Add new block
   const addBlock = (type) => {
-    const newBlock = {
-      id: Date.now(),
-      type: type,
-      content:
-        type === "heading1"
-          ? "New Heading"
-          : type === "heading2"
-          ? "New Subheading"
-          : type === "code"
-          ? "// Write your code here"
-          : "New paragraph",
-    };
+  saveHistory(blocks);
 
-    setBlocks((previousBlocks) => [
-      ...previousBlocks,
-      newBlock,
-    ]);
+  const newBlock = {
+    id: Date.now(),
+    type: type,
+    content:
+      type === "heading1"
+        ? "New Heading"
+        : type === "heading2"
+        ? "New Subheading"
+        : type === "code"
+        ? "// Write your code here"
+        : "New paragraph",
   };
+
+  setBlocks((previousBlocks) => [
+    ...previousBlocks,
+    newBlock,
+  ]);
+};
 
   // Delete block
   const deleteBlock = (id) => {
-    setBlocks((previousBlocks) =>
-      previousBlocks.filter((block) => block.id !== id)
-    );
+  saveHistory(blocks);
 
-    if (activeBlockId === id) {
-      setActiveBlockId(null);
-    }
-  };
+  setBlocks((previousBlocks) =>
+    previousBlocks.filter((block) => block.id !== id)
+  );
 
+  if (activeBlockId === id) {
+    setActiveBlockId(null);
+  }
+};
+
+  // Duplicate block
   const duplicateBlock = (id) => {
+  saveHistory(blocks);
+
   setBlocks((previousBlocks) => {
     const index = previousBlocks.findIndex(
       (block) => block.id === id
@@ -161,47 +140,153 @@ const handleDrop = (event, targetId) => {
   };
 
   // Change block type using toolbar
+  saveHistory(blocks);
   const handleFormat = (format) => {
-    if (!activeBlockId) {
+  if (!activeBlockId) {
+    return;
+  }
+
+  saveHistory(blocks);   // 👈 ADD THIS
+
+  setBlocks((previousBlocks) =>
+    previousBlocks.map((block) => {
+      if (block.id !== activeBlockId) {
+        return block;
+      }
+
+      if (format === "heading1") {
+        return {
+          ...block,
+          type: "heading1",
+        };
+      }
+
+      if (format === "heading2") {
+        return {
+          ...block,
+          type: "heading2",
+        };
+      }
+
+      if (format === "paragraph") {
+        return {
+          ...block,
+          type: "paragraph",
+        };
+      }
+
+      if (format === "code") {
+        return {
+          ...block,
+          type: "code",
+        };
+      }
+
+      return block;
+    })
+  );
+};
+  // Start dragging a block
+  const handleDragStart = (event, id) => {
+    setDraggedBlockId(id);
+    event.dataTransfer.effectAllowed = "move";
+  };
+
+  // Allow dropping
+  const handleDragOver = (event) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  };
+
+  // Drop block
+  const handleDrop = (event, targetId) => {
+    event.preventDefault();
+
+    if (
+      !draggedBlockId ||
+      draggedBlockId === targetId
+    ) {
       return;
     }
 
-    setBlocks((previousBlocks) =>
-      previousBlocks.map((block) => {
-        if (block.id !== activeBlockId) {
-          return block;
-        }
+    saveHistory(blocks);
 
-        if (format === "heading1") {
-          return {
-            ...block,
-            type: "heading1",
-          };
-        }
+    setBlocks((previousBlocks) => {
+      const draggedBlock = previousBlocks.find(
+        (block) => block.id === draggedBlockId
+      );
 
-        if (format === "heading2") {
-          return {
-            ...block,
-            type: "heading2",
-          };
-        }
+      if (!draggedBlock) {
+        return previousBlocks;
+      }
 
-        if (format === "paragraph") {
-          return {
-            ...block,
-            type: "paragraph",
-          };
-        }
+      const remainingBlocks = previousBlocks.filter(
+        (block) => block.id !== draggedBlockId
+      );
 
-        if (format === "code") {
-          return {
-            ...block,
-            type: "code",
-          };
-        }
+      const targetIndex = remainingBlocks.findIndex(
+        (block) => block.id === targetId
+      );
 
-        return block;
-      })
+      if (targetIndex === -1) {
+        return previousBlocks;
+      }
+
+      remainingBlocks.splice(
+        targetIndex,
+        0,
+        draggedBlock
+      );
+
+      return remainingBlocks;
+    });
+
+    setDraggedBlockId(null);
+  };
+    const saveHistory = (currentBlocks) => {
+    setHistory((previousHistory) => [
+      ...previousHistory,
+      currentBlocks,
+    ]);
+
+    setFuture([]);
+  };
+
+  const undo = () => {
+    if (history.length === 0) {
+      return;
+    }
+
+    const previousBlocks = history[history.length - 1];
+
+    setFuture((previousFuture) => [
+      blocks,
+      ...previousFuture,
+    ]);
+
+    setBlocks(previousBlocks);
+
+    setHistory((previousHistory) =>
+      previousHistory.slice(0, -1)
+    );
+  };
+
+  const redo = () => {
+    if (future.length === 0) {
+      return;
+    }
+
+    const nextBlocks = future[0];
+
+    setHistory((previousHistory) => [
+      ...previousHistory,
+      blocks,
+    ]);
+
+    setBlocks(nextBlocks);
+
+    setFuture((previousFuture) =>
+      previousFuture.slice(1)
     );
   };
 
@@ -213,13 +298,16 @@ const handleDrop = (event, targetId) => {
         className="title"
         type="text"
         value={title}
-        onChange={(event) => setTitle(event.target.value)}
+        onChange={(event) =>
+          setTitle(event.target.value)
+        }
         placeholder="Document title"
       />
-      <div className="document-stats">
-  Words: {wordCount}
-</div>
 
+      {/* Word count */}
+      <div className="document-stats">
+        Words: {wordCount}
+      </div>
 
       {/* Toolbar */}
       <Toolbar onFormat={handleFormat} />
@@ -230,26 +318,31 @@ const handleDrop = (event, targetId) => {
         {activeBlockId && (
           <div className="active-info">
             Selected Block:{" "}
-            {blocks.find(
-              (block) => block.id === activeBlockId
-            )?.type}
+            {
+              blocks.find(
+                (block) =>
+                  block.id === activeBlockId
+              )?.type
+            }
           </div>
         )}
 
         {/* Document blocks */}
         {blocks.map((block) => (
           <Block
-  key={block.id}
-  block={block}
-  onDelete={deleteBlock}
-  onDuplicate={duplicateBlock}
-  onChange={updateBlock}
-  onSelect={selectBlock}
-  isActive={activeBlockId === block.id}
-  onDragStart={handleDragStart}
-  onDragOver={handleDragOver}
-  onDrop={handleDrop}
-/>
+            key={block.id}
+            block={block}
+            onDelete={deleteBlock}
+            onDuplicate={duplicateBlock}
+            onChange={updateBlock}
+            onSelect={selectBlock}
+            isActive={
+              activeBlockId === block.id
+            }
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop}
+          />
         ))}
 
         {/* Add block buttons */}
@@ -257,28 +350,36 @@ const handleDrop = (event, targetId) => {
 
           <button
             className="add-block"
-            onClick={() => addBlock("heading1")}
+            onClick={() =>
+              addBlock("heading1")
+            }
           >
             + Add H1
           </button>
 
           <button
             className="add-block"
-            onClick={() => addBlock("heading2")}
+            onClick={() =>
+              addBlock("heading2")
+            }
           >
             + Add H2
           </button>
 
           <button
             className="add-block"
-            onClick={() => addBlock("paragraph")}
+            onClick={() =>
+              addBlock("paragraph")
+            }
           >
             + Add Paragraph
           </button>
 
           <button
             className="add-block"
-            onClick={() => addBlock("code")}
+            onClick={() =>
+              addBlock("code")
+            }
           >
             + Add Code
           </button>
