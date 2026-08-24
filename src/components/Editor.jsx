@@ -3,9 +3,21 @@ import Toolbar from "./Toolbar";
 import Block from "./Block.jsx";
 
 function Editor({ saveStatus, setSaveStatus }) {
-  const [title, setTitle] = useState("System Architecture");
+  const [title, setTitle] = useState(() => {
+  return (
+    localStorage.getItem("syncdoc-title") ||
+    "System Architecture"
+  );
+});
 
-  const [blocks, setBlocks] = useState([
+  const [blocks, setBlocks] = useState(() => {
+  const savedBlocks = localStorage.getItem("syncdoc-blocks");
+
+  if (savedBlocks) {
+    return JSON.parse(savedBlocks);
+  }
+
+  return [
     {
       id: 1,
       type: "heading1",
@@ -29,7 +41,12 @@ function Editor({ saveStatus, setSaveStatus }) {
       content: `const message = "Hello SyncDoc";
 console.log(message);`,
     },
-  ]);
+    ];
+    setBlocks(defaultBlocks);
+  setTitle("System Architecture");
+
+  localStorage.removeItem("syncdoc-blocks");
+  localStorage.removeItem("syncdoc-title");
 
   const [activeBlockId, setActiveBlockId] = useState(null);
   const [draggedBlockId, setDraggedBlockId] = useState(null);
@@ -51,6 +68,15 @@ console.log(message);`,
   // Show Saving whenever the document changes
   useEffect(() => {
     setSaveStatus("Saving...");
+
+    localStorage.setItem(
+  "syncdoc-blocks",
+  JSON.stringify(blocks)
+);
+localStorage.setItem(
+  "syncdoc-title",
+  title
+);
 
     const timer = setTimeout(() => {
       setSaveStatus("Saved");
