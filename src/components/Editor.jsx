@@ -65,6 +65,10 @@ console.log(message);`,
     );
   }, 0);
 
+  const characterCount = blocks.reduce((total, block) => {
+  return total + block.content.length;
+}, 0);
+
   // Show Saving whenever the document changes
   useEffect(() => {
     setSaveStatus("Saving...");
@@ -332,8 +336,8 @@ localStorage.setItem(
 
       {/* Word count */}
       <div className="document-stats">
-        Words: {wordCount}
-      </div>
+  Words: {wordCount} | Characters: {characterCount}
+</div>
 
       {/* Toolbar */}
       <Toolbar onFormat={handleFormat} />
