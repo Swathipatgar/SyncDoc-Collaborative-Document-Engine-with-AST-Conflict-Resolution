@@ -338,6 +338,15 @@ localStorage.setItem(
       <div className="document-stats">
   Words: {wordCount} | Characters: {characterCount}
 </div>
+const readingTime = Math.max(
+  1,
+  Math.ceil(wordCount / 200)
+);
+
+<div className="document-stats">
+  Words: {wordCount} | Characters: {characterCount} |
+  Reading time: {readingTime} min
+</div>
 
       {/* Toolbar */}
       <Toolbar onFormat={handleFormat} />
