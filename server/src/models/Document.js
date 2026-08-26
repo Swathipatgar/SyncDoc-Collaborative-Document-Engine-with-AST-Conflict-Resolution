@@ -24,6 +24,28 @@ const documentSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    contentFormat: {
+      type: String,
+      enum: ["plain-text", "ast-json"],
+      default: "plain-text",
+    },
+    yjsState: {
+      type: Buffer,
+      default: null,
+    },
+    astVersion: {
+      type: Number,
+      default: 1,
+    },
+    lastPersistedAt: {
+      type: Date,
+      default: null,
+    },
+    persistenceStatus: {
+      type: String,
+      enum: ["clean", "pending", "degraded"],
+      default: "clean",
+    },
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -31,8 +53,16 @@ const documentSchema = new mongoose.Schema(
     },
     collaborators: [
       {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
+        permission: {
+          type: String,
+          enum: ["read", "write"],
+          default: "write",
+        },
       },
     ],
     isPublic: {

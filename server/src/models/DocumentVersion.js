@@ -16,6 +16,15 @@ const documentVersionSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    contentFormat: {
+      type: String,
+      enum: ["plain-text", "ast-json"],
+      default: "plain-text",
+    },
+    astVersion: {
+      type: Number,
+      default: 1,
+    },
     changeSummary: {
       type: String,
       default: "",

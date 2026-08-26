@@ -3,6 +3,8 @@ const Y = require("yjs");
 class YjsService {
   constructor() {
     this.docs = new Map();
+    this.loadedDocuments = new Set();
+    this.loadingDocuments = new Map();
   }
 
   getDoc(documentId) {
@@ -39,8 +41,38 @@ class YjsService {
       if (text.length > 0) text.delete(0, text.length);
       text.insert(0, nextContent);
     }, "legacy-text-replacement");
+    this.loadedDocuments.add(this.normalizeDocumentId(documentId));
 
     return nextContent;
+  }
+
+  async ensureLoaded(documentId, loadState) {
+    const normalizedDocumentId = this.normalizeDocumentId(documentId);
+    if (!normalizedDocumentId) return null;
+    if (this.loadedDocuments.has(normalizedDocumentId)) return this.getDoc(normalizedDocumentId);
+    if (this.loadingDocuments.has(normalizedDocumentId)) return this.loadingDocuments.get(normalizedDocumentId);
+
+    const loadPromise = Promise.resolve()
+      .then(() => loadState())
+      .then((state) => {
+        const doc = this.getDoc(normalizedDocumentId);
+        if (state?.yjsState) {
+          Y.applyUpdate(doc, this.normalizeUpdate(state.yjsState));
+        } else if (typeof state?.content === "string" && state.content) {
+          doc.getText("content").insert(0, state.content);
+        }
+        this.loadedDocuments.add(normalizedDocumentId);
+        return doc;
+      })
+      .finally(() => this.loadingDocuments.delete(normalizedDocumentId));
+
+    this.loadingDocuments.set(normalizedDocumentId, loadPromise);
+    return loadPromise;
+  }
+
+  markLoaded(documentId) {
+    const normalizedDocumentId = this.normalizeDocumentId(documentId);
+    if (normalizedDocumentId) this.loadedDocuments.add(normalizedDocumentId);
   }
 
   encodeState(documentId) {

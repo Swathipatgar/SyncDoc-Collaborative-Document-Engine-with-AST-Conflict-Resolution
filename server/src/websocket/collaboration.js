@@ -1,4 +1,7 @@
 const yjsService = require("../services/yjsService");
+const { getDocumentPersistenceState, persistDocumentState, getDocumentAccess } = require("../services/documentService");
+const { createCheckpointVersion } = require("../services/versionService");
+const { buildDiffSummary } = require("../utils/ast");
 
 const registerCollaborationSocket = (io) => {
   const documentSubscriptions = new Map();
@@ -6,6 +9,13 @@ const registerCollaborationSocket = (io) => {
   // Map<documentId, Map<userId, PresenceEntry>>. `sockets` and
   // `editingSocketId` are server-only and never included in client payloads.
   const presenceByDocument = new Map();
+  const persistenceTimers = new Map();
+  const persistenceInFlight = new Map();
+  const dirtyDocuments = new Set();
+  const lastPersistenceUsers = new Map();
+  const persistedStates = new Map();
+  const persistedContents = new Map();
+  const persistenceDelay = 1500;
 
   const emitError = (socket, message) => {
     socket.emit("collaboration-error", { message });
@@ -126,12 +136,21 @@ const registerCollaborationSocket = (io) => {
       return null;
     }
 
-    if (!normalizedDocumentId || normalizedDocumentId !== socket.data.documentId) {
+    if (!normalizedDocumentId || normalizedDocumentId !== socket.data.documentId || !socket.rooms.has(normalizedDocumentId)) {
       emitError(socket, `Cannot ${action} for a document this socket has not joined.`);
       return null;
     }
 
     return normalizedDocumentId;
+  };
+
+  const ensureWriteAccess = (socket) => {
+    const access = socket.data.documentAccess;
+    if (!access || access.documentId !== socket.data.documentId || access.canWrite !== true) {
+      emitError(socket, "You do not have permission to edit this document.");
+      return false;
+    }
+    return true;
   };
 
   const ensureDocumentSubscription = (documentId) => {
@@ -154,6 +173,76 @@ const registerCollaborationSocket = (io) => {
     documentSubscriptions.set(documentId, unsubscribe);
   };
 
+  const persistDocument = async (documentId) => {
+    if (persistenceInFlight.has(documentId)) {
+      dirtyDocuments.add(documentId);
+      return persistenceInFlight.get(documentId);
+    }
+
+    const state = Buffer.from(yjsService.encodeState(documentId));
+    const previousState = persistedStates.get(documentId);
+    if (previousState && previousState.equals(state)) {
+      dirtyDocuments.delete(documentId);
+      return null;
+    }
+
+    const content = yjsService.getText(documentId);
+    const userId = lastPersistenceUsers.get(documentId);
+    const promise = persistDocumentState({
+      documentId,
+      yjsState: state,
+      content,
+      userId,
+    })
+      .then(async (result) => {
+        if (!result) return null;
+
+        const previousContent = persistedContents.get(documentId) || "";
+        await createCheckpointVersion({
+          documentId,
+          userId,
+          content: result.content,
+          contentFormat: result.contentFormat,
+          changeSummary: "Collaborative checkpoint",
+          diff: buildDiffSummary(previousContent, result.content),
+        });
+        persistedStates.set(documentId, state);
+        persistedContents.set(documentId, result.content);
+        dirtyDocuments.delete(documentId);
+        return result;
+      })
+      .catch((error) => {
+        console.error(`Document persistence failed for ${documentId}:`, error.message);
+        return null;
+      })
+      .finally(() => {
+        persistenceInFlight.delete(documentId);
+        if (dirtyDocuments.has(documentId)) schedulePersistence(documentId);
+      });
+
+    persistenceInFlight.set(documentId, promise);
+    return promise;
+  };
+
+  const schedulePersistence = (documentId, userId) => {
+    dirtyDocuments.add(documentId);
+    if (userId) lastPersistenceUsers.set(documentId, userId);
+    if (persistenceTimers.has(documentId)) clearTimeout(persistenceTimers.get(documentId));
+
+    const timer = setTimeout(() => {
+      persistenceTimers.delete(documentId);
+      persistDocument(documentId);
+    }, persistenceDelay);
+    persistenceTimers.set(documentId, timer);
+  };
+
+  const flushPersistence = (documentId) => {
+    const timer = persistenceTimers.get(documentId);
+    if (timer) clearTimeout(timer);
+    persistenceTimers.delete(documentId);
+    return persistDocument(documentId);
+  };
+
   const removeDocumentSubscriptionIfUnused = (documentId) => {
     const room = io.sockets.adapter.rooms.get(documentId);
     if (room && room.size > 0) return;
@@ -167,25 +256,48 @@ const registerCollaborationSocket = (io) => {
   io.on("connection", (socket) => {
     console.log("Client connected:", socket.id);
 
-    socket.on("join-document", (payload = {}) => {
+    socket.on("join-document", async (payload = {}) => {
       const { documentId } = payload || {};
       if (!getAuthenticatedUser(socket)) {
         emitError(socket, "Authentication is required for collaboration.");
         return;
       }
 
-      const doc = yjsService.getDoc(documentId);
-      if (!doc) {
+      const normalizedDocumentId = yjsService.normalizeDocumentId(documentId);
+      if (!normalizedDocumentId) {
         emitError(socket, "A valid documentId is required to join collaboration.");
         return;
       }
 
-      const normalizedDocumentId = String(documentId).trim();
+      let accessResult;
+      try {
+        accessResult = await getDocumentAccess(normalizedDocumentId, getAuthenticatedUser(socket).userId);
+      } catch (error) {
+        console.error(`Document authorization failed for ${normalizedDocumentId}:`, error.message);
+        emitError(socket, "Unable to authorize access to this document.");
+        return;
+      }
+      if (!accessResult.document) {
+        emitError(socket, "Document not found.");
+        return;
+      }
+      if (!accessResult.access?.canRead) {
+        emitError(socket, "You do not have access to this document.");
+        return;
+      }
+
+      try {
+        await yjsService.ensureLoaded(normalizedDocumentId, () => getDocumentPersistenceState(normalizedDocumentId));
+      } catch (error) {
+        console.error(`Document hydration failed for ${normalizedDocumentId}:`, error.message);
+        yjsService.getDoc(normalizedDocumentId);
+      }
 
       const previousDocumentId = socket.data.documentId;
       if (previousDocumentId && previousDocumentId !== normalizedDocumentId) {
         const { endedBlockId } = removeSocketPresence(previousDocumentId, socket);
         socket.leave(previousDocumentId);
+        socket.data.documentAccess = undefined;
         if (endedBlockId) {
           socket.to(previousDocumentId).emit("block-editing", {
             userId: getAuthenticatedUser(socket).userId,
@@ -203,6 +315,12 @@ const registerCollaborationSocket = (io) => {
 
       socket.join(normalizedDocumentId);
       socket.data.documentId = normalizedDocumentId;
+      socket.data.documentAccess = {
+        documentId: normalizedDocumentId,
+        role: accessResult.access.role,
+        canRead: accessResult.access.canRead,
+        canWrite: accessResult.access.canWrite,
+      };
       ensureDocumentSubscription(normalizedDocumentId);
       addSocketPresence(normalizedDocumentId, socket);
 
@@ -223,6 +341,7 @@ const registerCollaborationSocket = (io) => {
       const { documentId, update } = payload || {};
       const normalizedDocumentId = normalizeJoinedDocumentId(socket, documentId, "update");
       if (!normalizedDocumentId) return;
+      if (!ensureWriteAccess(socket)) return;
 
       const encodedUpdate = toUint8Array(update);
       if (!encodedUpdate) {
@@ -242,6 +361,7 @@ const registerCollaborationSocket = (io) => {
         // Applying a duplicate Yjs update produces no Y.Doc update event.
         updateOrigins.delete(normalizedDocumentId);
       }
+      if (applied) schedulePersistence(normalizedDocumentId, getAuthenticatedUser(socket).userId);
     });
 
     socket.on("cursor-update", (payload = {}) => {
@@ -269,6 +389,7 @@ const registerCollaborationSocket = (io) => {
       const normalizedBlockId =
         typeof blockId === "string" || typeof blockId === "number" ? String(blockId).trim() : null;
       if (!normalizedDocumentId) return;
+      if (!ensureWriteAccess(socket)) return;
       if (!normalizedBlockId) {
         emitError(socket, "A valid blockId is required to start editing.");
         return;
@@ -299,6 +420,7 @@ const registerCollaborationSocket = (io) => {
       const normalizedBlockId =
         typeof blockId === "string" || typeof blockId === "number" ? String(blockId).trim() : null;
       if (!normalizedDocumentId) return;
+      if (!ensureWriteAccess(socket)) return;
       if (!normalizedBlockId) {
         emitError(socket, "A valid blockId is required to stop editing.");
         return;
@@ -338,6 +460,7 @@ const registerCollaborationSocket = (io) => {
           userId: user?.userId,
         });
         broadcastPresenceUpdate(documentId);
+        flushPersistence(documentId);
         removeDocumentSubscriptionIfUnused(documentId);
       }
     });

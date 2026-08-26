@@ -10,6 +10,37 @@ const parseContent = (content) => {
   }
 };
 
+const getContentProjection = (content) => {
+  const normalizedContent = typeof content === "string" ? content : "";
+
+  if (normalizedContent === "") {
+    return { content: "", ast: [], contentFormat: "plain-text" };
+  }
+
+  try {
+    const ast = JSON.parse(normalizedContent);
+    if (!validateAST(ast)) {
+      throw new Error("Document content must be a valid AST structure.");
+    }
+
+    return {
+      content: JSON.stringify(ast),
+      ast,
+      contentFormat: "ast-json",
+    };
+  } catch (error) {
+    if (error.message === "Document content must be a valid AST structure.") {
+      throw error;
+    }
+
+    return {
+      content: normalizedContent,
+      ast: [{ type: "text", value: normalizedContent }],
+      contentFormat: "plain-text",
+    };
+  }
+};
+
 const buildDiffSummary = (previousContent, nextContent) => {
   const prev = previousContent || "";
   const next = nextContent || "";
@@ -56,4 +87,4 @@ const validateAST = (ast) => {
   return false;
 };
 
-module.exports = { parseContent, buildDiffSummary, validateNode, validateAST };
+module.exports = { parseContent, getContentProjection, buildDiffSummary, validateNode, validateAST };
