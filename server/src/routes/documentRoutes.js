@@ -6,6 +6,8 @@ const {
   updateDocumentContent,
   shareDocument,
   removeCollaborator,
+  exportHtml,
+  exportPdf,
 } = require("../controllers/documentController");
 const { protect } = require("../middleware/authMiddleware");
 
@@ -15,5 +17,7 @@ router.route("/").get(protect, getAllDocuments).post(protect, createNewDocument)
 router.route("/:id").get(protect, getDocument).put(protect, updateDocumentContent);
 router.post("/:id/share", protect, shareDocument);
 router.delete("/:id/collaborators/:collaboratorId", protect, removeCollaborator);
+router.get("/:id/export/html", protect, exportHtml);
+router.get("/:id/export/pdf", protect, exportPdf);
 
 module.exports = router;

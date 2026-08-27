@@ -1,5 +1,5 @@
 const yjsService = require("../services/yjsService");
-const { getDocumentPersistenceState, persistDocumentState, getDocumentAccess } = require("../services/documentService");
+const { getDocumentPersistenceState, persistDocumentState, getDocumentAccess, isValidDocumentId } = require("../services/documentService");
 const { createCheckpointVersion } = require("../services/versionService");
 const { buildDiffSummary } = require("../utils/ast");
 
@@ -16,6 +16,9 @@ const registerCollaborationSocket = (io) => {
   const persistedStates = new Map();
   const persistedContents = new Map();
   const persistenceDelay = 1500;
+  const maxYjsUpdateBytes = 1024 * 1024;
+  const maxCursorBytes = 16 * 1024;
+  const maxBlockIdLength = 256;
 
   const emitError = (socket, message) => {
     socket.emit("collaboration-error", { message });
@@ -30,6 +33,18 @@ const registerCollaborationSocket = (io) => {
     }
 
     return null;
+  };
+
+  const isValidCursor = (cursor) => {
+    if (!cursor || typeof cursor !== "object" || Array.isArray(cursor)) return false;
+    if (Buffer.byteLength(JSON.stringify(cursor), "utf8") > maxCursorBytes) return false;
+    return Object.values(cursor).every((value) => value === null || ["string", "number", "boolean"].includes(typeof value));
+  };
+
+  const normalizeBlockId = (blockId) => {
+    if (typeof blockId !== "string" && typeof blockId !== "number") return null;
+    const normalized = String(blockId).trim();
+    return normalized && normalized.length <= maxBlockIdLength ? normalized : null;
   };
 
   const getAuthenticatedUser = (socket) => {
@@ -251,11 +266,13 @@ const registerCollaborationSocket = (io) => {
     if (unsubscribe) unsubscribe();
     documentSubscriptions.delete(documentId);
     updateOrigins.delete(documentId);
+    persistedStates.delete(documentId);
+    persistedContents.delete(documentId);
+    lastPersistenceUsers.delete(documentId);
+    dirtyDocuments.delete(documentId);
   };
 
   io.on("connection", (socket) => {
-    console.log("Client connected:", socket.id);
-
     socket.on("join-document", async (payload = {}) => {
       const { documentId } = payload || {};
       if (!getAuthenticatedUser(socket)) {
@@ -264,7 +281,7 @@ const registerCollaborationSocket = (io) => {
       }
 
       const normalizedDocumentId = yjsService.normalizeDocumentId(documentId);
-      if (!normalizedDocumentId) {
+      if (!normalizedDocumentId || !isValidDocumentId(normalizedDocumentId)) {
         emitError(socket, "A valid documentId is required to join collaboration.");
         return;
       }
@@ -344,7 +361,7 @@ const registerCollaborationSocket = (io) => {
       if (!ensureWriteAccess(socket)) return;
 
       const encodedUpdate = toUint8Array(update);
-      if (!encodedUpdate) {
+      if (!encodedUpdate || encodedUpdate.byteLength === 0 || encodedUpdate.byteLength > maxYjsUpdateBytes) {
         emitError(socket, "Collaboration update must be a binary Yjs payload.");
         return;
       }
@@ -368,6 +385,10 @@ const registerCollaborationSocket = (io) => {
       const { documentId, cursor } = payload || {};
       const normalizedDocumentId = normalizeJoinedDocumentId(socket, documentId, "update a cursor");
       if (!normalizedDocumentId) return;
+      if (!isValidCursor(cursor)) {
+        emitError(socket, "Cursor must be a small object containing only primitive values.");
+        return;
+      }
 
       const user = getAuthenticatedUser(socket);
       const presence = getPresenceDocument(normalizedDocumentId)?.get(user.userId);
@@ -386,8 +407,7 @@ const registerCollaborationSocket = (io) => {
     socket.on("block-edit-start", (payload = {}) => {
       const { documentId, blockId } = payload || {};
       const normalizedDocumentId = normalizeJoinedDocumentId(socket, documentId, "edit a block");
-      const normalizedBlockId =
-        typeof blockId === "string" || typeof blockId === "number" ? String(blockId).trim() : null;
+      const normalizedBlockId = normalizeBlockId(blockId);
       if (!normalizedDocumentId) return;
       if (!ensureWriteAccess(socket)) return;
       if (!normalizedBlockId) {
@@ -417,8 +437,7 @@ const registerCollaborationSocket = (io) => {
     socket.on("block-edit-end", (payload = {}) => {
       const { documentId, blockId } = payload || {};
       const normalizedDocumentId = normalizeJoinedDocumentId(socket, documentId, "stop editing a block");
-      const normalizedBlockId =
-        typeof blockId === "string" || typeof blockId === "number" ? String(blockId).trim() : null;
+      const normalizedBlockId = normalizeBlockId(blockId);
       if (!normalizedDocumentId) return;
       if (!ensureWriteAccess(socket)) return;
       if (!normalizedBlockId) {
@@ -442,8 +461,11 @@ const registerCollaborationSocket = (io) => {
       broadcastPresenceUpdate(normalizedDocumentId, socket.id);
     });
 
+    socket.on("error", (error) => {
+      console.error("Socket error:", error?.message || "unknown error");
+    });
+
     socket.on("disconnect", () => {
-      console.log("Client disconnected:", socket.id);
       if (socket.data.documentId) {
         const documentId = socket.data.documentId;
         const user = getAuthenticatedUser(socket);
@@ -460,7 +482,7 @@ const registerCollaborationSocket = (io) => {
           userId: user?.userId,
         });
         broadcastPresenceUpdate(documentId);
-        flushPersistence(documentId);
+        void flushPersistence(documentId).catch((error) => console.error("Persistence flush failed:", error.message));
         removeDocumentSubscriptionIfUnused(documentId);
       }
     });

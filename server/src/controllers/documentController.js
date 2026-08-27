@@ -12,15 +12,16 @@ const mongoose = require("mongoose");
 const { createCheckpointVersion } = require("../services/versionService");
 const yjsService = require("../services/yjsService");
 const { buildDiffSummary, getContentProjection } = require("../utils/ast");
+const { contentToHtml } = require("../utils/export");
 
 const createNewDocument = async (req, res, next) => {
   try {
-    const { title, content } = req.body;
+    const { title, content } = req.body || {};
 
-    if (typeof title !== "string" || !title.trim()) {
+    if (!req.body || typeof req.body !== "object" || Array.isArray(req.body) || typeof title !== "string" || !title.trim() || title.trim().length > 500) {
       return res.status(400).json({ message: "Document title is required" });
     }
-    if (content !== undefined && typeof content !== "string") {
+    if (content !== undefined && (typeof content !== "string" || Buffer.byteLength(content, "utf8") > 1024 * 1024)) {
       return res.status(400).json({ message: "Document content must be a string" });
     }
 
@@ -36,7 +37,7 @@ const createNewDocument = async (req, res, next) => {
       documentId,
       yjsState: yjsService.encodeState(documentId),
       content: document.content,
-      userId: req.user._id,
+      userId: req.user.userId,
     });
 
     res.status(201).json(document);
@@ -73,9 +74,9 @@ const getDocument = async (req, res, next) => {
 
 const updateDocumentContent = async (req, res, next) => {
   try {
-    const { content } = req.body;
+    const { content } = req.body || {};
     if (!isValidDocumentId(req.params.id)) return res.status(400).json({ message: "Invalid document id" });
-    if (typeof content !== "string") return res.status(400).json({ message: "Document content must be a string" });
+    if (!req.body || typeof content !== "string" || Buffer.byteLength(content, "utf8") > 1024 * 1024) return res.status(400).json({ message: "Document content must be a string no larger than 1 MiB" });
     const { document, access } = await getDocumentAccess(req.params.id, req.user.userId);
     if (!document) return res.status(404).json({ message: "Document not found" });
     if (!access?.canWrite) return res.status(403).json({ message: "You do not have permission to edit this document" });
@@ -90,7 +91,7 @@ const updateDocumentContent = async (req, res, next) => {
       documentId: req.params.id,
       yjsState: yjsService.encodeState(req.params.id),
       content: nextContent,
-      userId: req.user._id,
+      userId: req.user.userId,
     });
 
     if (!persisted) {
@@ -99,7 +100,7 @@ const updateDocumentContent = async (req, res, next) => {
 
     await createCheckpointVersion({
       documentId: req.params.id,
-      userId: req.user._id,
+      userId: req.user.userId,
       content: persisted.content,
       contentFormat: persisted.contentFormat,
       changeSummary: "Live document update",
@@ -114,11 +115,12 @@ const updateDocumentContent = async (req, res, next) => {
 
 const shareDocument = async (req, res, next) => {
   try {
-    const { collaboratorId, permission = "write" } = req.body || {};
+    if (!req.body || typeof req.body !== "object" || Array.isArray(req.body)) return res.status(400).json({ message: "A JSON request body is required" });
+    const { collaboratorId, permission = "write" } = req.body;
     if (!isValidDocumentId(req.params.id) || !mongoose.isValidObjectId(collaboratorId)) {
       return res.status(400).json({ message: "A valid document and collaborator id are required" });
     }
-    if (!(await User.exists({ _id: collaboratorId }))) return res.status(400).json({ message: "Collaborator not found" });
+    if (!(await User.exists({ _id: collaboratorId }))) return res.status(404).json({ message: "Collaborator not found" });
     if (!["read", "write"].includes(permission)) return res.status(400).json({ message: "Permission must be read or write" });
     const { document, access } = await getDocumentAccess(req.params.id, req.user.userId);
     if (!document) return res.status(404).json({ message: "Document not found" });
@@ -148,6 +150,28 @@ const removeCollaborator = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
+const exportHtml = async (req, res, next) => {
+  try {
+    if (!isValidDocumentId(req.params.id)) return res.status(400).json({ message: "Invalid document id" });
+    const { document, access } = await getDocumentAccess(req.params.id, req.user.userId);
+    if (!document) return res.status(404).json({ message: "Document not found" });
+    if (!access?.canRead) return res.status(403).json({ message: "You do not have access to this document" });
+    await yjsService.ensureLoaded(req.params.id, () => getDocumentPersistenceState(req.params.id));
+    const html = contentToHtml(yjsService.getText(req.params.id));
+    res.type("html").send(`<!doctype html><html><head><meta charset="utf-8"><title>${require("../utils/export").escapeHtml(document.title)}</title></head><body>${html}</body></html>`);
+  } catch (error) { next(error); }
+};
+
+const exportPdf = async (req, res, next) => {
+  try {
+    if (!isValidDocumentId(req.params.id)) return res.status(400).json({ message: "Invalid document id" });
+    const { document, access } = await getDocumentAccess(req.params.id, req.user.userId);
+    if (!document) return res.status(404).json({ message: "Document not found" });
+    if (!access?.canRead) return res.status(403).json({ message: "You do not have access to this document" });
+    return res.status(501).json({ message: "PDF export is not available in this deployment" });
+  } catch (error) { next(error); }
+};
+
 module.exports = {
   createNewDocument,
   getAllDocuments,
@@ -155,4 +179,6 @@ module.exports = {
   updateDocumentContent,
   shareDocument,
   removeCollaborator,
+  exportHtml,
+  exportPdf,
 };

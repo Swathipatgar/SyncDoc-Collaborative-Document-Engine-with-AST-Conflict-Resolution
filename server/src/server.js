@@ -9,14 +9,28 @@ const { registerCollaborationSocket } = require("./websocket/collaboration");
 dotenv.config();
 
 const PORT = process.env.PORT || 5000;
+const retryMongoConnection = () => {
+  const retry = async () => {
+    try {
+      await connectDB();
+      clearInterval(timer);
+    } catch (error) {
+      console.error("MongoDB remains unavailable; retrying persistence connection.");
+    }
+  };
+  const timer = setInterval(retry, 30000);
+  timer.unref();
+};
 
 const startServer = () => {
   const server = http.createServer(app);
   const io = new Server(server, {
     cors: {
-      origin: process.env.CLIENT_URL || "*",
+      origin: process.env.CLIENT_URL || false,
       methods: ["GET", "POST"],
     },
+    // Socket event payloads, including Yjs updates, are capped at 2 MiB.
+    maxHttpBufferSize: 2 * 1024 * 1024,
   });
 
   io.use((socket, next) => {
@@ -41,10 +55,16 @@ const startServer = () => {
   server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
+  server.on("error", (error) => console.error("HTTP server error:", error.message));
 
   connectDB().catch((error) => {
-    console.error("MongoDB unavailable; continuing without persistence:", error.message);
+    console.error("MongoDB unavailable; continuing without persistence.");
+    retryMongoConnection();
   });
+
+  return { server, io };
 };
 
-startServer();
+if (require.main === module) startServer();
+
+module.exports = { startServer };

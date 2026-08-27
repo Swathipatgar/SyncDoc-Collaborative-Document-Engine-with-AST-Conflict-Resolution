@@ -57,7 +57,15 @@ class YjsService {
       .then((state) => {
         const doc = this.getDoc(normalizedDocumentId);
         if (state?.yjsState) {
-          Y.applyUpdate(doc, this.normalizeUpdate(state.yjsState));
+          try {
+            const update = this.normalizeUpdate(state.yjsState);
+            if (!update) throw new Error("Persisted Yjs state is not binary");
+            Y.applyUpdate(doc, update);
+          } catch (error) {
+            // Retain recoverable text rather than making the document unavailable.
+            console.error("Ignoring corrupt persisted Yjs state for document", normalizedDocumentId);
+            if (typeof state.content === "string" && state.content) doc.getText("content").insert(0, state.content);
+          }
         } else if (typeof state?.content === "string" && state.content) {
           doc.getText("content").insert(0, state.content);
         }

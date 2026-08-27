@@ -53,13 +53,18 @@ const buildDiffSummary = (previousContent, nextContent) => {
   return added >= 0 ? `Updated content (${Math.abs(added)} chars changed)` : "Modified content";
 };
 
-// Validate a single AST node recursively. Rules:
-// - node must be an object with a non-empty string `type`
-// - if `value` exists it must be a string
-// - if `children` exists it must be an array of valid nodes
-const validateNode = (node) => {
-  if (!node || typeof node !== "object") return false;
-  if (typeof node.type !== "string" || node.type.trim() === "") return false;
+const AST_NODE_TYPES = new Set([
+  "document", "root", "section", "paragraph", "text", "heading", "code", "code-block",
+  "list", "list-item", "bold", "italic", "link",
+]);
+const MAX_AST_DEPTH = 64;
+const MAX_AST_NODES = 10000;
+
+// Validate the project's recursive AST with explicit structural bounds.
+const validateNode = (node, depth = 0, state = { count: 0 }) => {
+  if (!node || typeof node !== "object" || Array.isArray(node) || depth > MAX_AST_DEPTH) return false;
+  state.count += 1;
+  if (state.count > MAX_AST_NODES || typeof node.type !== "string" || !AST_NODE_TYPES.has(node.type)) return false;
 
   if (Object.prototype.hasOwnProperty.call(node, "value")) {
     if (typeof node.value !== "string") return false;
@@ -68,9 +73,13 @@ const validateNode = (node) => {
   if (Object.prototype.hasOwnProperty.call(node, "children")) {
     if (!Array.isArray(node.children)) return false;
     for (const child of node.children) {
-      if (!validateNode(child)) return false;
+      if (!validateNode(child, depth + 1, state)) return false;
     }
   }
+
+  if (node.type === "heading" && (!Number.isInteger(node.level) || node.level < 1 || node.level > 6)) return false;
+  if (node.type === "link" && (typeof node.url !== "string" || !/^(https?:|mailto:)/i.test(node.url))) return false;
+  if (["list", "list-item", "paragraph", "heading", "code", "code-block", "bold", "italic", "link"].includes(node.type) && node.children === undefined && node.value === undefined) return false;
 
   return true;
 };
@@ -79,7 +88,8 @@ const validateNode = (node) => {
 const validateAST = (ast) => {
   if (ast == null) return true; // treat missing AST as valid (nothing to validate)
   if (Array.isArray(ast)) {
-    return ast.every(validateNode);
+    const state = { count: 0 };
+    return ast.every((node) => validateNode(node, 0, state));
   }
   if (typeof ast === "object") {
     return validateNode(ast);

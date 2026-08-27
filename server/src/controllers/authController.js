@@ -14,10 +14,10 @@ const generateToken = (userId) => {
 // REGISTER
 const register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password } = req.body || {};
 
     // Validate input
-    if (!name || !email || !password) {
+    if (typeof name !== "string" || typeof email !== "string" || typeof password !== "string" || !name.trim() || !email.trim() || password.length < 6 || name.trim().length > 120 || email.trim().length > 254) {
       return res.status(400).json({
         success: false,
         message: "Name, email and password are required",
@@ -25,7 +25,8 @@ const register = async (req, res) => {
     }
 
     // Check existing user
-    const existingUser = await User.findOne({ email });
+    const normalizedEmail = email.trim().toLowerCase();
+    const existingUser = await User.findOne({ email: normalizedEmail });
 
     if (existingUser) {
       return res.status(409).json({
@@ -39,8 +40,8 @@ const register = async (req, res) => {
 
     // Create user
     const user = await User.create({
-      name,
-      email,
+      name: name.trim(),
+      email: normalizedEmail,
       password: hashedPassword,
     });
 
@@ -60,7 +61,7 @@ const register = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Register Error:", error);
+    console.error("Registration failed:", error.name, error.message);
 
     res.status(500).json({
       success: false,
@@ -72,9 +73,9 @@ const register = async (req, res) => {
 // LOGIN
 const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = req.body || {};
 
-    if (!email || !password) {
+    if (typeof email !== "string" || typeof password !== "string" || !email.trim() || !password) {
       return res.status(400).json({
         success: false,
         message: "Email and password are required",
@@ -82,7 +83,7 @@ const login = async (req, res) => {
     }
 
     // Find user
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
 
     if (!user) {
       return res.status(401).json({
@@ -120,7 +121,7 @@ const login = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Login Error:", error);
+    console.error("Login failed:", error.name, error.message);
 
     res.status(500).json({
       success: false,
@@ -148,7 +149,7 @@ const getMe = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Get User Error:", error);
+    console.error("Get current user failed:", error.name, error.message);
 
     res.status(500).json({
       success: false,
