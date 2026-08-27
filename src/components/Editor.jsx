@@ -344,9 +344,9 @@ const readingTime = Math.max(
 );
 
 <div className="document-stats">
-  Words: {wordCount} | Characters: {characterCount} |
-  Reading time: {readingTime} min
+  Blocks: {blockCount} | Words: {wordCount} | Characters: {characterCount}
 </div>
+const blockCount = blocks.length;
 
       {/* Toolbar */}
       <Toolbar onFormat={handleFormat} />
