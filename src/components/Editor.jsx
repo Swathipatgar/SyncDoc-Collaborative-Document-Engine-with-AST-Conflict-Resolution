@@ -346,6 +346,9 @@ const readingTime = Math.max(
 <div className="document-stats">
   Blocks: {blockCount} | Words: {wordCount} | Characters: {characterCount}
 </div>
+<div className="save-indicator">
+  Status: {saveStatus}
+</div>
 const blockCount = blocks.length;
 
       {/* Toolbar */}
