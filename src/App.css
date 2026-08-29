@@ -243,3 +243,27 @@ body {
 .delete-block:hover {
   background: #f3f3f3;
 }
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.search-box input {
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  width: 280px;
+}
+
+.search-results {
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.search-match {
+  border: 2px solid #f0c36e;
+  border-radius: 6px;
+  padding: 4px;
+}

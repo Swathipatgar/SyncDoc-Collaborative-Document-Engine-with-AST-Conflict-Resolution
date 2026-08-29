@@ -333,6 +333,22 @@ localStorage.setItem(
         }
         placeholder="Document title"
       />
+      <div className="search-box">
+  <input
+    type="text"
+    value={searchText}
+    onChange={(event) =>
+      setSearchText(event.target.value)
+    }
+    placeholder="Search document..."
+  />
+
+  {searchText && (
+    <span>
+      Results: {searchResults.length}
+    </span>
+  )}
+</div>
 
       {/* Word count */}
       <div className="document-stats">
@@ -342,6 +358,17 @@ const readingTime = Math.max(
   1,
   Math.ceil(wordCount / 200)
 );
+const searchResults = blocks.filter((block) =>
+  block.content
+    .toLowerCase()
+    .includes(searchText.toLowerCase())
+);
+
+{searchText && (
+  <div className="search-results">
+    Found {searchResults.length} matching block(s)
+  </div>
+)}
 
 <div className="document-stats">
   Blocks: {blockCount} | Words: {wordCount} | Characters: {characterCount}
@@ -371,21 +398,30 @@ const blockCount = blocks.length;
 
         {/* Document blocks */}
         {blocks.map((block) => (
-          <Block
-            key={block.id}
-            block={block}
-            onDelete={deleteBlock}
-            onDuplicate={duplicateBlock}
-            onChange={updateBlock}
-            onSelect={selectBlock}
-            isActive={
-              activeBlockId === block.id
-            }
-            onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
-            onDrop={handleDrop}
-          />
-        ))}
+  <div
+    key={block.id}
+    className={
+      searchText &&
+      block.content
+        .toLowerCase()
+        .includes(searchText.toLowerCase())
+        ? "search-match"
+        : ""
+    }
+  >
+    <Block
+      block={block}
+      onDelete={deleteBlock}
+      onDuplicate={duplicateBlock}
+      onChange={updateBlock}
+      onSelect={selectBlock}
+      isActive={activeBlockId === block.id}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    />
+  </div>
+))}
 
         {/* Add block buttons */}
         <div className="block-actions">
