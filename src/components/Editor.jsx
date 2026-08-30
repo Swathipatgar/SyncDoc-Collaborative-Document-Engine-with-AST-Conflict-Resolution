@@ -440,6 +440,18 @@ console.log(message);`,
           placeholder="Search document..."
         />
 
+        {searchText && (
+  <button
+    onClick={() => {
+      setSearchText("");
+      setSearchIndex(0);
+      setActiveBlockId(null);
+    }}
+  >
+    ✕ Clear
+  </button>
+)}
+
         {searchText &&
           searchResults.length > 0 && (
             <>
