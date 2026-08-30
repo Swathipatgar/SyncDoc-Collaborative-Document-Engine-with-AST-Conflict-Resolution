@@ -504,10 +504,12 @@ console.log(message);`,
 
       {/* Toolbar */}
       <Toolbar
-        onFormat={handleFormat}
-        onUndo={undo}
-        onRedo={redo}
-      />
+  onFormat={handleFormat}
+  onUndo={undo}
+  onRedo={redo}
+  canUndo={history.length > 0}
+  canRedo={future.length > 0}
+/>
 
       <div className="editor-content">
 

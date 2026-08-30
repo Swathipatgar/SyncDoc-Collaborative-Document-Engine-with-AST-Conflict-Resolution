@@ -1,4 +1,10 @@
-function Toolbar({ onFormat }) {
+function Toolbar({
+  onFormat,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
+}) {
   return (
     <div className="toolbar">
       <button onClick={() => onFormat("bold")}>
@@ -24,6 +30,18 @@ function Toolbar({ onFormat }) {
       <button onClick={() => onFormat("code")}>
         Code
       </button>
+      <button
+  onClick={onUndo}
+  disabled={!canUndo}
+>
+  Undo
+</button>
+      <button
+  onClick={onRedo}
+  disabled={!canRedo}
+>
+  Redo
+</button>
     </div>
   );
 }
