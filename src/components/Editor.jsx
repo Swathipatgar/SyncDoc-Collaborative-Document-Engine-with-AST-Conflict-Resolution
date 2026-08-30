@@ -475,11 +475,11 @@ console.log(message);`,
           )}
 
         {searchText &&
-          searchResults.length === 0 && (
-            <span>
-              No results
-            </span>
-          )}
+  searchResults.length === 0 && (
+    <span className="no-results">
+      No matching blocks found
+    </span>
+  )}
       </div>
 
       {/* Document Statistics */}
