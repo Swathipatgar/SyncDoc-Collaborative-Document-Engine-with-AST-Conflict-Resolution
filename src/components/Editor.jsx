@@ -513,16 +513,24 @@ console.log(message);`,
 
         {/* Selected Block */}
         {activeBlockId && (
-          <div className="active-info">
-            Selected Block:{" "}
-            {
-              blocks.find(
-                (block) =>
-                  block.id === activeBlockId
-              )?.type
-            }
-          </div>
-        )}
+  <div className="active-info">
+    <span>
+      Selected Block:{" "}
+      {
+        blocks.find(
+          (block) =>
+            block.id === activeBlockId
+        )?.type
+      }
+    </span>
+
+    <button
+      onClick={() => setActiveBlockId(null)}
+    >
+      Clear Selection
+    </button>
+  </div>
+)}
 
         {/* Document Blocks */}
         {blocks.map((block) => (
