@@ -419,14 +419,15 @@ console.log(message);`,
 
       {/* Document Title */}
       <input
-        className="title"
-        type="text"
-        value={title}
-        onChange={(event) =>
-          setTitle(event.target.value)
-        }
-        placeholder="Document title"
-      />
+  className="title"
+  type="text"
+  value={title}
+  onChange={(event) =>
+    setTitle(event.target.value)
+  }
+  placeholder="Document title"
+  maxLength={100}
+/>
 
       {/* Search */}
       <div className="search-box">
