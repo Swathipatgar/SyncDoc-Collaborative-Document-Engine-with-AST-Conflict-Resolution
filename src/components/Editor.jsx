@@ -3,58 +3,69 @@ import Toolbar from "./Toolbar";
 import Block from "./Block.jsx";
 
 function Editor({ saveStatus, setSaveStatus }) {
+  // -----------------------------
+  // Document Title
+  // -----------------------------
   const [title, setTitle] = useState(() => {
-  return (
-    localStorage.getItem("syncdoc-title") ||
-    "System Architecture"
-  );
-});
+    return (
+      localStorage.getItem("syncdoc-title") ||
+      "System Architecture"
+    );
+  });
 
+  // -----------------------------
+  // Document Blocks
+  // -----------------------------
   const [blocks, setBlocks] = useState(() => {
-  const savedBlocks = localStorage.getItem("syncdoc-blocks");
+    const savedBlocks = localStorage.getItem("syncdoc-blocks");
 
-  if (savedBlocks) {
-    return JSON.parse(savedBlocks);
-  }
+    if (savedBlocks) {
+      return JSON.parse(savedBlocks);
+    }
 
-  return [
-    {
-      id: 1,
-      type: "heading1",
-      content: "System Architecture",
-    },
-    {
-      id: 2,
-      type: "paragraph",
-      content:
-        "Welcome to SyncDoc. This is a collaborative document editor.",
-    },
-    {
-      id: 3,
-      type: "paragraph",
-      content:
-        "Multiple users will be able to edit different blocks of this document simultaneously.",
-    },
-    {
-      id: 4,
-      type: "code",
-      content: `const message = "Hello SyncDoc";
+    return [
+      {
+        id: 1,
+        type: "heading1",
+        content: "System Architecture",
+      },
+      {
+        id: 2,
+        type: "paragraph",
+        content:
+          "Welcome to SyncDoc. This is a collaborative document editor.",
+      },
+      {
+        id: 3,
+        type: "paragraph",
+        content:
+          "Multiple users will be able to edit different blocks of this document simultaneously.",
+      },
+      {
+        id: 4,
+        type: "code",
+        content: `const message = "Hello SyncDoc";
 console.log(message);`,
-    },
+      },
     ];
-    setBlocks(defaultBlocks);
-  setTitle("System Architecture");
+  });
 
-  localStorage.removeItem("syncdoc-blocks");
-  localStorage.removeItem("syncdoc-title");
-
+  // -----------------------------
+  // States
+  // -----------------------------
   const [activeBlockId, setActiveBlockId] = useState(null);
   const [draggedBlockId, setDraggedBlockId] = useState(null);
-  
 
   const [history, setHistory] = useState([]);
   const [future, setFuture] = useState([]);
-  // Word count
+
+  // Search states
+  const [searchText, setSearchText] = useState("");
+  const [searchIndex, setSearchIndex] = useState(0);
+
+  // -----------------------------
+  // Document Statistics
+  // -----------------------------
   const wordCount = blocks.reduce((total, block) => {
     return (
       total +
@@ -66,214 +77,29 @@ console.log(message);`,
   }, 0);
 
   const characterCount = blocks.reduce((total, block) => {
-  return total + block.content.length;
-}, 0);
+    return total + block.content.length;
+  }, 0);
 
-  // Show Saving whenever the document changes
-  useEffect(() => {
-    setSaveStatus("Saving...");
+  const blockCount = blocks.length;
 
-    localStorage.setItem(
-  "syncdoc-blocks",
-  JSON.stringify(blocks)
-);
-localStorage.setItem(
-  "syncdoc-title",
-  title
-);
-
-    const timer = setTimeout(() => {
-      setSaveStatus("Saved");
-    }, 800);
-
-    return () => clearTimeout(timer);
-  }, [title, blocks, setSaveStatus]);
-
-  // Add new block
-  const addBlock = (type) => {
-  saveHistory(blocks);
-
-  const newBlock = {
-    id: Date.now(),
-    type: type,
-    content:
-      type === "heading1"
-        ? "New Heading"
-        : type === "heading2"
-        ? "New Subheading"
-        : type === "code"
-        ? "// Write your code here"
-        : "New paragraph",
-  };
-
-  setBlocks((previousBlocks) => [
-    ...previousBlocks,
-    newBlock,
-  ]);
-};
-
-  // Delete block
-  const deleteBlock = (id) => {
-  saveHistory(blocks);
-
-  setBlocks((previousBlocks) =>
-    previousBlocks.filter((block) => block.id !== id)
+  const readingTime = Math.max(
+    1,
+    Math.ceil(wordCount / 200)
   );
 
-  if (activeBlockId === id) {
-    setActiveBlockId(null);
-  }
-};
-
-  // Duplicate block
-  const duplicateBlock = (id) => {
-  saveHistory(blocks);
-
-  setBlocks((previousBlocks) => {
-    const index = previousBlocks.findIndex(
-      (block) => block.id === id
-    );
-
-    if (index === -1) {
-      return previousBlocks;
-    }
-
-    const originalBlock = previousBlocks[index];
-
-    const newBlock = {
-      ...originalBlock,
-      id: Date.now(),
-    };
-
-    const updatedBlocks = [...previousBlocks];
-
-    updatedBlocks.splice(index + 1, 0, newBlock);
-
-    return updatedBlocks;
-  });
-};
-
-  // Update block content
-  const updateBlock = (id, content) => {
-    setBlocks((previousBlocks) =>
-      previousBlocks.map((block) =>
-        block.id === id
-          ? { ...block, content: content }
-          : block
-      )
-    );
-  };
-
-  // Select block
-  const selectBlock = (id) => {
-    setActiveBlockId(id);
-  };
-
-  // Change block type using toolbar
-  saveHistory(blocks);
-  const handleFormat = (format) => {
-  if (!activeBlockId) {
-    return;
-  }
-
-  saveHistory(blocks);   // 👈 ADD THIS
-
-  setBlocks((previousBlocks) =>
-    previousBlocks.map((block) => {
-      if (block.id !== activeBlockId) {
-        return block;
-      }
-
-      if (format === "heading1") {
-        return {
-          ...block,
-          type: "heading1",
-        };
-      }
-
-      if (format === "heading2") {
-        return {
-          ...block,
-          type: "heading2",
-        };
-      }
-
-      if (format === "paragraph") {
-        return {
-          ...block,
-          type: "paragraph",
-        };
-      }
-
-      if (format === "code") {
-        return {
-          ...block,
-          type: "code",
-        };
-      }
-
-      return block;
-    })
+  // -----------------------------
+  // Search Results
+  // -----------------------------
+  const searchResults = blocks.filter((block) =>
+    block.content
+      .toLowerCase()
+      .includes(searchText.toLowerCase())
   );
-};
-  // Start dragging a block
-  const handleDragStart = (event, id) => {
-    setDraggedBlockId(id);
-    event.dataTransfer.effectAllowed = "move";
-  };
 
-  // Allow dropping
-  const handleDragOver = (event) => {
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "move";
-  };
-
-  // Drop block
-  const handleDrop = (event, targetId) => {
-    event.preventDefault();
-
-    if (
-      !draggedBlockId ||
-      draggedBlockId === targetId
-    ) {
-      return;
-    }
-
-    saveHistory(blocks);
-
-    setBlocks((previousBlocks) => {
-      const draggedBlock = previousBlocks.find(
-        (block) => block.id === draggedBlockId
-      );
-
-      if (!draggedBlock) {
-        return previousBlocks;
-      }
-
-      const remainingBlocks = previousBlocks.filter(
-        (block) => block.id !== draggedBlockId
-      );
-
-      const targetIndex = remainingBlocks.findIndex(
-        (block) => block.id === targetId
-      );
-
-      if (targetIndex === -1) {
-        return previousBlocks;
-      }
-
-      remainingBlocks.splice(
-        targetIndex,
-        0,
-        draggedBlock
-      );
-
-      return remainingBlocks;
-    });
-
-    setDraggedBlockId(null);
-  };
-    const saveHistory = (currentBlocks) => {
+  // -----------------------------
+  // Save History
+  // -----------------------------
+  const saveHistory = (currentBlocks) => {
     setHistory((previousHistory) => [
       ...previousHistory,
       currentBlocks,
@@ -282,12 +108,16 @@ localStorage.setItem(
     setFuture([]);
   };
 
+  // -----------------------------
+  // Undo
+  // -----------------------------
   const undo = () => {
     if (history.length === 0) {
       return;
     }
 
-    const previousBlocks = history[history.length - 1];
+    const previousBlocks =
+      history[history.length - 1];
 
     setFuture((previousFuture) => [
       blocks,
@@ -301,6 +131,9 @@ localStorage.setItem(
     );
   };
 
+  // -----------------------------
+  // Redo
+  // -----------------------------
   const redo = () => {
     if (future.length === 0) {
       return;
@@ -320,10 +153,271 @@ localStorage.setItem(
     );
   };
 
+  // -----------------------------
+  // Auto Save
+  // -----------------------------
+  useEffect(() => {
+    setSaveStatus("Saving...");
+
+    localStorage.setItem(
+      "syncdoc-blocks",
+      JSON.stringify(blocks)
+    );
+
+    localStorage.setItem(
+      "syncdoc-title",
+      title
+    );
+
+    const timer = setTimeout(() => {
+      setSaveStatus("Saved");
+    }, 800);
+
+    return () => clearTimeout(timer);
+  }, [title, blocks, setSaveStatus]);
+
+  // -----------------------------
+  // Add Block
+  // -----------------------------
+  const addBlock = (type) => {
+    saveHistory(blocks);
+
+    const newBlock = {
+      id: Date.now(),
+      type: type,
+      content:
+        type === "heading1"
+          ? "New Heading"
+          : type === "heading2"
+          ? "New Subheading"
+          : type === "code"
+          ? "// Write your code here"
+          : "New paragraph",
+    };
+
+    setBlocks((previousBlocks) => [
+      ...previousBlocks,
+      newBlock,
+    ]);
+  };
+
+  // -----------------------------
+  // Delete Block
+  // -----------------------------
+  const deleteBlock = (id) => {
+    saveHistory(blocks);
+
+    setBlocks((previousBlocks) =>
+      previousBlocks.filter(
+        (block) => block.id !== id
+      )
+    );
+
+    if (activeBlockId === id) {
+      setActiveBlockId(null);
+    }
+  };
+
+  // -----------------------------
+  // Duplicate Block
+  // -----------------------------
+  const duplicateBlock = (id) => {
+    saveHistory(blocks);
+
+    setBlocks((previousBlocks) => {
+      const index = previousBlocks.findIndex(
+        (block) => block.id === id
+      );
+
+      if (index === -1) {
+        return previousBlocks;
+      }
+
+      const originalBlock = previousBlocks[index];
+
+      const newBlock = {
+        ...originalBlock,
+        id: Date.now(),
+      };
+
+      const updatedBlocks = [...previousBlocks];
+
+      updatedBlocks.splice(
+        index + 1,
+        0,
+        newBlock
+      );
+
+      return updatedBlocks;
+    });
+  };
+
+  // -----------------------------
+  // Update Block
+  // -----------------------------
+  const updateBlock = (id, content) => {
+    setBlocks((previousBlocks) =>
+      previousBlocks.map((block) =>
+        block.id === id
+          ? {
+              ...block,
+              content: content,
+            }
+          : block
+      )
+    );
+  };
+
+  // -----------------------------
+  // Select Block
+  // -----------------------------
+  const selectBlock = (id) => {
+    setActiveBlockId(id);
+  };
+
+  // -----------------------------
+  // Format Block
+  // -----------------------------
+  const handleFormat = (format) => {
+    if (!activeBlockId) {
+      return;
+    }
+
+    saveHistory(blocks);
+
+    setBlocks((previousBlocks) =>
+      previousBlocks.map((block) => {
+        if (block.id !== activeBlockId) {
+          return block;
+        }
+
+        return {
+          ...block,
+          type: format,
+        };
+      })
+    );
+  };
+
+  // -----------------------------
+  // Drag Start
+  // -----------------------------
+  const handleDragStart = (event, id) => {
+    setDraggedBlockId(id);
+
+    event.dataTransfer.effectAllowed = "move";
+  };
+
+  // -----------------------------
+  // Drag Over
+  // -----------------------------
+  const handleDragOver = (event) => {
+    event.preventDefault();
+
+    event.dataTransfer.dropEffect = "move";
+  };
+
+  // -----------------------------
+  // Drop Block
+  // -----------------------------
+  const handleDrop = (event, targetId) => {
+    event.preventDefault();
+
+    if (
+      !draggedBlockId ||
+      draggedBlockId === targetId
+    ) {
+      return;
+    }
+
+    saveHistory(blocks);
+
+    setBlocks((previousBlocks) => {
+      const draggedBlock =
+        previousBlocks.find(
+          (block) =>
+            block.id === draggedBlockId
+        );
+
+      if (!draggedBlock) {
+        return previousBlocks;
+      }
+
+      const remainingBlocks =
+        previousBlocks.filter(
+          (block) =>
+            block.id !== draggedBlockId
+        );
+
+      const targetIndex =
+        remainingBlocks.findIndex(
+          (block) =>
+            block.id === targetId
+        );
+
+      if (targetIndex === -1) {
+        return previousBlocks;
+      }
+
+      remainingBlocks.splice(
+        targetIndex,
+        0,
+        draggedBlock
+      );
+
+      return remainingBlocks;
+    });
+
+    setDraggedBlockId(null);
+  };
+
+  // -----------------------------
+  // Search Next
+  // -----------------------------
+  const nextSearchResult = () => {
+    if (searchResults.length === 0) {
+      return;
+    }
+
+    const nextIndex =
+      (searchIndex + 1) %
+      searchResults.length;
+
+    setSearchIndex(nextIndex);
+
+    setActiveBlockId(
+      searchResults[nextIndex].id
+    );
+  };
+
+  // -----------------------------
+  // Search Previous
+  // -----------------------------
+  const previousSearchResult = () => {
+    if (searchResults.length === 0) {
+      return;
+    }
+
+    const previousIndex =
+      (searchIndex -
+        1 +
+        searchResults.length) %
+      searchResults.length;
+
+    setSearchIndex(previousIndex);
+
+    setActiveBlockId(
+      searchResults[previousIndex].id
+    );
+  };
+
+  // -----------------------------
+  // RETURN / UI
+  // -----------------------------
   return (
     <main className="editor">
 
-      {/* Document title */}
+      {/* Document Title */}
       <input
         className="title"
         type="text"
@@ -333,57 +427,79 @@ localStorage.setItem(
         }
         placeholder="Document title"
       />
+
+      {/* Search */}
       <div className="search-box">
-  <input
-    type="text"
-    value={searchText}
-    onChange={(event) =>
-      setSearchText(event.target.value)
-    }
-    placeholder="Search document..."
-  />
+        <input
+          type="text"
+          value={searchText}
+          onChange={(event) => {
+            setSearchText(event.target.value);
+            setSearchIndex(0);
+          }}
+          placeholder="Search document..."
+        />
 
-  {searchText && (
-    <span>
-      Results: {searchResults.length}
-    </span>
-  )}
-</div>
+        {searchText &&
+          searchResults.length > 0 && (
+            <>
+              <button
+                onClick={previousSearchResult}
+              >
+                ← Previous
+              </button>
 
-      {/* Word count */}
+              <span>
+                {searchIndex + 1} /{" "}
+                {searchResults.length}
+              </span>
+
+              <button
+                onClick={nextSearchResult}
+              >
+                Next →
+              </button>
+            </>
+          )}
+
+        {searchText &&
+          searchResults.length === 0 && (
+            <span>
+              No results
+            </span>
+          )}
+      </div>
+
+      {/* Document Statistics */}
       <div className="document-stats">
-  Words: {wordCount} | Characters: {characterCount}
-</div>
-const readingTime = Math.max(
-  1,
-  Math.ceil(wordCount / 200)
-);
-const searchResults = blocks.filter((block) =>
-  block.content
-    .toLowerCase()
-    .includes(searchText.toLowerCase())
-);
+        Blocks: {blockCount} | Words: {wordCount} |
+        Characters: {characterCount} | Reading time:{" "}
+        {readingTime} min
+      </div>
 
-{searchText && (
-  <div className="search-results">
-    Found {searchResults.length} matching block(s)
-  </div>
-)}
+      {/* Search Result Message */}
+      {searchText && (
+        <div className="search-results">
+          Found {searchResults.length} matching
+          block(s)
+        </div>
+      )}
 
-<div className="document-stats">
-  Blocks: {blockCount} | Words: {wordCount} | Characters: {characterCount}
-</div>
-<div className="save-indicator">
-  Status: {saveStatus}
-</div>
-const blockCount = blocks.length;
+      {/* Save Status */}
+      <div className="save-indicator">
+        Status: {saveStatus}
+      </div>
 
       {/* Toolbar */}
-      <Toolbar onFormat={handleFormat} />
+      <Toolbar
+        onFormat={handleFormat}
+        onUndo={undo}
+        onRedo={redo}
+      />
 
       <div className="editor-content">
 
-        {/* Selected block information */}
+        {/* Selected Block */}
         {activeBlockId && (
           <div className="active-info">
             Selected Block:{" "}
@@ -396,34 +512,38 @@ const blockCount = blocks.length;
           </div>
         )}
 
-        {/* Document blocks */}
+        {/* Document Blocks */}
         {blocks.map((block) => (
-  <div
-    key={block.id}
-    className={
-      searchText &&
-      block.content
-        .toLowerCase()
-        .includes(searchText.toLowerCase())
-        ? "search-match"
-        : ""
-    }
-  >
-    <Block
-      block={block}
-      onDelete={deleteBlock}
-      onDuplicate={duplicateBlock}
-      onChange={updateBlock}
-      onSelect={selectBlock}
-      isActive={activeBlockId === block.id}
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDrop={handleDrop}
-    />
-  </div>
-))}
+          <div
+            key={block.id}
+            className={
+              searchText &&
+              block.content
+                .toLowerCase()
+                .includes(
+                  searchText.toLowerCase()
+                )
+                ? "search-match"
+                : ""
+            }
+          >
+            <Block
+              block={block}
+              onDelete={deleteBlock}
+              onDuplicate={duplicateBlock}
+              onChange={updateBlock}
+              onSelect={selectBlock}
+              isActive={
+                activeBlockId === block.id
+              }
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDrop={handleDrop}
+            />
+          </div>
+        ))}
 
-        {/* Add block buttons */}
+        {/* Add Block Buttons */}
         <div className="block-actions">
 
           <button
