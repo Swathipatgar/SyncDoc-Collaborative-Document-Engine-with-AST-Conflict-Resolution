@@ -502,6 +502,9 @@ console.log(message);`,
       <div className="save-indicator">
         Status: {saveStatus}
       </div>
+      <div className="document-info">
+  Auto-save enabled
+</div>
 
       {/* Toolbar */}
       <Toolbar
@@ -525,6 +528,12 @@ console.log(message);`,
             block.id === activeBlockId
         )?.type
       }
+      
+      {" | "}
+      Block No:{" "}
+      {blocks.findIndex(
+        (block) => block.id === activeBlockId
+      ) + 1}
     </span>
 
     <button
