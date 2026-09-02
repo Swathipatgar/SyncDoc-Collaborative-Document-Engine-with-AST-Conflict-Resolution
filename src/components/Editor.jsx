@@ -9,7 +9,7 @@ function Editor({ saveStatus, setSaveStatus }) {
   const [title, setTitle] = useState(() => {
     return (
       localStorage.getItem("syncdoc-title") ||
-      "System Architecture System"
+      "System Architecture"
     );
   });
 
