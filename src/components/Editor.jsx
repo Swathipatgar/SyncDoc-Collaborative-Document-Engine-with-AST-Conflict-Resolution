@@ -79,9 +79,7 @@ console.log(message);`,
   const characterCount = blocks.reduce((total, block) => {
     return total + block.content.length;
   }, 0);
-
   const blockCount = blocks.length;
-
   const readingTime = Math.max(
     1,
     Math.ceil(wordCount / 200)
@@ -489,6 +487,10 @@ console.log(message);`,
         Characters: {characterCount} | Reading time:{" "}
         {readingTime} min
       </div>
+      const readingTime = Math.max(
+  1,
+  Math.ceil(wordCount / 200)
+);
 
       {/* Search Result Message */}
       {searchText && (
@@ -502,6 +504,9 @@ console.log(message);`,
       <div className="save-indicator">
         Status: {saveStatus}
       </div>
+      <div className="document-status">
+  Document ready
+</div>
       <div className="document-info">
   Auto-save enabled
 </div>
