@@ -508,11 +508,15 @@ console.log(message);`,
       </div>
 
       {/* Document Statistics */}
-      <div className="document-stats">
-        Blocks: {blockCount} | Words: {wordCount} |
-        Characters: {characterCount} | Reading time:{" "}
-        {readingTime} min
-      </div>
+<div className="document-stats">
+  Blocks: {blockCount} | Words: {wordCount} |
+  Characters: {characterCount} | Reading time:{" "}
+  {readingTime} min
+</div>
+
+<div className="last-updated">
+  Last updated: {new Date().toLocaleTimeString()}
+</div>
       
 
       {/* Search Result Message */}
