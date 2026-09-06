@@ -180,25 +180,25 @@ console.log(message);`,
   // -----------------------------
   // Auto Save
   // -----------------------------
-  useEffect(() => {
-    setSaveStatus("Saving...");
+ // Keyboard shortcuts
+useEffect(() => {
+  const handleKeyDown = (event) => {
+    if (event.ctrlKey && event.key === "z") {
+      event.preventDefault();
+      undo();
+    }
 
-    localStorage.setItem(
-      "syncdoc-blocks",
-      JSON.stringify(blocks)
-    );
+    if (event.ctrlKey && event.key === "y") {
+      event.preventDefault();
+      redo();
+    }
+  };
+  window.addEventListener("keydown", handleKeyDown);
 
-    localStorage.setItem(
-      "syncdoc-title",
-      title
-    );
-
-    const timer = setTimeout(() => {
-      setSaveStatus("Saved");
-    }, 800);
-
-    return () => clearTimeout(timer);
-  }, [title, blocks, setSaveStatus]);
+  return () => {
+    window.removeEventListener("keydown", handleKeyDown);
+  };
+}, [history, future]);
 
   // -----------------------------
   // Add Block
@@ -480,11 +480,12 @@ console.log(message);`,
         {searchText &&
           searchResults.length > 0 && (
             <>
-              <button
-                onClick={previousSearchResult}
-              >
-                ← Previous
-              </button>
+             <button onClick={() => {
+  setSearchText("");
+  setSearchIndex(0);
+}}>
+  Clear
+</button>
 
               <span>
                 {searchIndex + 1} /{" "}
@@ -507,12 +508,18 @@ console.log(message);`,
   )}
       </div>
 
-      {/* Document Statistics */}
+{/* Document Statistics */}
 <div className="document-stats">
   Blocks: {blockCount} | Words: {wordCount} |
   Characters: {characterCount} | Reading time:{" "}
   {readingTime} min
 </div>
+
+<div className="last-updated">
+  Last updated: {new Date().toLocaleTimeString()}
+</div>
+
+{/* Search Result Message */}
 
 <div className="last-updated">
   Last updated: {new Date().toLocaleTimeString()}
