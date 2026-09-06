@@ -85,6 +85,8 @@ console.log(message);`,
     Math.ceil(wordCount / 200)
   );
 
+  
+
   // -----------------------------
   // Search Results
   // -----------------------------
@@ -93,6 +95,10 @@ console.log(message);`,
       .toLowerCase()
       .includes(searchText.toLowerCase())
   );
+
+
+  
+  
 
   // -----------------------------
   // Save History
@@ -107,6 +113,26 @@ console.log(message);`,
   };
 
   // -----------------------------
+  const exportDocument = () => {
+  let documentText = `${title}\n\n`;
+
+  blocks.forEach((block) => {
+    documentText += `${block.content}\n\n`;
+  });
+
+  const blob = new Blob([documentText], {
+    type: "text/plain",
+  });
+
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${title || "SyncDoc"}.txt`;
+  link.click();
+
+  URL.revokeObjectURL(url);
+};
   // Undo
   // -----------------------------
   const undo = () => {
@@ -487,10 +513,7 @@ console.log(message);`,
         Characters: {characterCount} | Reading time:{" "}
         {readingTime} min
       </div>
-      const readingTime = Math.max(
-  1,
-  Math.ceil(wordCount / 200)
-);
+      
 
       {/* Search Result Message */}
       {searchText && (
