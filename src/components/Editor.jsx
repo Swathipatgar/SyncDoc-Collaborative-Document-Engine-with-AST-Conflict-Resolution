@@ -480,12 +480,11 @@ useEffect(() => {
         {searchText &&
           searchResults.length > 0 && (
             <>
-             <button onClick={() => {
-  setSearchText("");
-  setSearchIndex(0);
-}}>
-  Clear
-</button>
+              <button
+                onClick={previousSearchResult}
+              >
+                ← Previous
+              </button>
 
               <span>
                 {searchIndex + 1} /{" "}
