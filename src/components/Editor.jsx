@@ -651,6 +651,50 @@ useEffect(() => {
           >
             + Add Code
           </button>
+          <button
+  className="export-button"
+  onClick={exportDocument}
+>
+  Export Document
+</button>
+
+{/* Import Document */}
+<button
+  className="import-button"
+  onClick={() => document.getElementById("import-file").click()}
+>
+  Import Document
+</button>
+
+<input
+  id="import-file"
+  type="file"
+  accept=".txt"
+  style={{ display: "none" }}
+  onChange={(event) => {
+    const file = event.target.files[0];
+
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      const content = e.target.result;
+
+      setBlocks([
+        {
+          id: Date.now(),
+          type: "paragraph",
+          content: content,
+        },
+      ]);
+    };
+
+    reader.readAsText(file);
+    event.target.value = "";
+  }}
+/>
+
 
 
 
