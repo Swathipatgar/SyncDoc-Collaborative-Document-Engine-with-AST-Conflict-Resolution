@@ -694,6 +694,42 @@ useEffect(() => {
     event.target.value = "";
   }}
 />
+<div className="add-block-buttons">
+  <button onClick={() => addBlock("heading1")}>
+    + H1
+  </button>
+
+  <button onClick={() => addBlock("heading2")}>
+    + H2
+  </button>
+
+  <button onClick={() => addBlock("paragraph")}>
+    + Paragraph
+  </button>
+
+  <button onClick={() => addBlock("code")}>
+    + Code
+  </button>
+</div>
+
+{/* ⭐ Clear Document */}
+<button
+  className="clear-document-button"
+  onClick={() => {
+    const confirmClear = window.confirm(
+      "Are you sure you want to clear the entire document?"
+    );
+
+    if (confirmClear) {
+      setBlocks([]);
+      setActiveBlockId(null);
+    }
+  }}
+>
+  Clear Document
+</button>
+
+</main>
 
 
 
