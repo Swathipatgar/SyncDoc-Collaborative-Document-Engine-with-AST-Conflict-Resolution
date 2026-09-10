@@ -229,18 +229,20 @@ useEffect(() => {
   // Delete Block
   // -----------------------------
   const deleteBlock = (id) => {
-    saveHistory(blocks);
+  const confirmDelete = window.confirm(
+    "Are you sure you want to delete this block?"
+  );
 
-    setBlocks((previousBlocks) =>
-      previousBlocks.filter(
-        (block) => block.id !== id
-      )
-    );
+  if (!confirmDelete) return;
 
-    if (activeBlockId === id) {
-      setActiveBlockId(null);
-    }
-  };
+  saveHistory();
+
+  setBlocks((prev) =>
+    prev.filter((block) => block.id !== id)
+  );
+
+  setActiveBlockId(null);
+};
 
   // -----------------------------
   // Duplicate Block

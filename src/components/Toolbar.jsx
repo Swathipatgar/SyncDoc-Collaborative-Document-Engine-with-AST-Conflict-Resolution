@@ -8,12 +8,7 @@ function Toolbar({
   return (
     
     <div className="toolbar">
-      <button
-  className="export-button"
-  onClick={exportDocument}
->
-  Export Document
-</button>
+      
       <button onClick={() => onFormat("bold")}>
         B
       </button>
