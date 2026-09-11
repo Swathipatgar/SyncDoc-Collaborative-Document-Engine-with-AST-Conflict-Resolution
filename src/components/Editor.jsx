@@ -730,6 +730,34 @@ useEffect(() => {
 >
   Clear Document
 </button>
+// Manual Save
+const saveDocument = () => {
+  localStorage.setItem("syncdoc-title", title);
+  localStorage.setItem("syncdoc-blocks", JSON.stringify(blocks));
+
+  setSaveStatus("Saved");
+};
+
+const exportDocument = () => {
+  let documentText = `${title}\n\n`;
+
+  blocks.forEach((block) => {
+    documentText += `${block.content}\n\n`;
+  });
+
+  const blob = new Blob([documentText], {
+    type: "text/plain",
+  });
+
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${title || "SyncDoc"}.txt`;
+  link.click();
+
+  URL.revokeObjectURL(url);
+};
 
 </main>
 
