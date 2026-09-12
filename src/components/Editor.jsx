@@ -730,6 +730,30 @@ useEffect(() => {
 >
   Clear Document
 </button>
+useEffect(() => {
+  const handleKeyboardShortcuts = (event) => {
+    if (event.ctrlKey && event.key === "z") {
+      event.preventDefault();
+      undo();
+    }
+
+    if (event.ctrlKey && event.key === "y") {
+      event.preventDefault();
+      redo();
+    }
+
+    if (event.ctrlKey && event.key === "s") {
+      event.preventDefault();
+      setSaveStatus("Saved");
+    }
+  };
+
+  window.addEventListener("keydown", handleKeyboardShortcuts);
+
+  return () => {
+    window.removeEventListener("keydown", handleKeyboardShortcuts);
+  };
+}, [history, future, blocks]);
 // Manual Save
 const saveDocument = () => {
   localStorage.setItem("syncdoc-title", title);
