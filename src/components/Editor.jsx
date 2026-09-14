@@ -805,6 +805,30 @@ const exportDocument = () => {
 
   URL.revokeObjectURL(url);
 };
+useEffect(() => {
+  const handleKeyboardShortcuts = (event) => {
+    if (event.ctrlKey && event.key.toLowerCase() === "z") {
+      event.preventDefault();
+      undo();
+    }
+
+    if (event.ctrlKey && event.key.toLowerCase() === "y") {
+      event.preventDefault();
+      redo();
+    }
+
+    if (event.ctrlKey && event.key.toLowerCase() === "s") {
+      event.preventDefault();
+      setSaveStatus("Saved");
+    }
+  };
+
+  window.addEventListener("keydown", handleKeyboardShortcuts);
+
+  return () => {
+    window.removeEventListener("keydown", handleKeyboardShortcuts);
+  };
+}, [history, future, blocks]);
 
 </main>
 
