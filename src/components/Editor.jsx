@@ -282,17 +282,16 @@ useEffect(() => {
   // Update Block
   // -----------------------------
   const updateBlock = (id, content) => {
-    setBlocks((previousBlocks) =>
-      previousBlocks.map((block) =>
-        block.id === id
-          ? {
-              ...block,
-              content: content,
-            }
-          : block
-      )
-    );
-  };
+  setSaveStatus("Typing...");
+
+  setBlocks((previousBlocks) =>
+    previousBlocks.map((block) =>
+      block.id === id
+        ? { ...block, content }
+        : block
+    )
+  );
+};
 
   // -----------------------------
   // Select Block
