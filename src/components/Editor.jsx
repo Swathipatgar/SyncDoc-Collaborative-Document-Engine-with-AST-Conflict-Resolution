@@ -830,6 +830,30 @@ useEffect(() => {
   };
 }, [history, future, blocks]);
 
+const exportDocument = () => {
+  const documentContent = blocks
+    .map((block) => block.content)
+    .join("\n\n");
+
+  const fileContent = `${title}\n\n${documentContent}`;
+
+  const blob = new Blob([fileContent], {
+    type: "text/plain",
+  });
+
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${title || "SyncDoc-Document"}.txt`;
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  URL.revokeObjectURL(url);
+};
+
 </main>
 
 
