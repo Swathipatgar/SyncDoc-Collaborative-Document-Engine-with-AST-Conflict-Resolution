@@ -852,6 +852,25 @@ const exportDocument = () => {
 
   URL.revokeObjectURL(url);
 };
+const copyDocument = async () => {
+  const documentContent = blocks
+    .map((block) => block.content)
+    .join("\n\n");
+
+  try {
+    await navigator.clipboard.writeText(
+      `${title}\n\n${documentContent}`
+    );
+
+    setSaveStatus("Copied");
+    
+    setTimeout(() => {
+      setSaveStatus("Saved");
+    }, 1000);
+  } catch (error) {
+    console.error("Failed to copy document:", error);
+  }
+};
 
 </main>
 
