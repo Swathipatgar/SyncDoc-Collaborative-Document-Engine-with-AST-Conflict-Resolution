@@ -871,6 +871,20 @@ const copyDocument = async () => {
     console.error("Failed to copy document:", error);
   }
 };
+const clearDocument = () => {
+  if (blocks.length === 0) return;
+
+  const confirmed = window.confirm(
+    "Are you sure you want to clear the document?"
+  );
+
+  if (!confirmed) return;
+
+  saveHistory(blocks);
+  setBlocks([]);
+  setActiveBlockId(null);
+  setSaveStatus("Saving...");
+};
 
 </main>
 
