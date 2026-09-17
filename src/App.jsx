@@ -1,26 +1,63 @@
-import { useState } from "react";
-import Header from "./components/Header.jsx";
-import Sidebar from "./components/Sidebar.jsx";
-import Editor from "./components/Editor.jsx";
+import React, { useState, useEffect } from "react";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import AuthPage from "./components/auth/AuthPage";
+import DocumentDashboard from "./components/dashboard/DocumentDashboard";
+import Editor from "./components/Editor";
 import "./App.css";
 
-function App() {
-  const [saveStatus, setSaveStatus] = useState("Saved");
+function AppContent() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const [currentDocId, setCurrentDocId] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("doc") || null;
+  });
 
-  return (
-    <div className="syncdoc">
-      <Header saveStatus={saveStatus} />
+  // Keep URL query param synced with current document for easy sharing/refresh
+  const handleSelectDoc = (docId) => {
+    setCurrentDocId(docId);
+    if (docId) {
+      const url = new URL(window.location);
+      url.searchParams.set("doc", docId);
+      window.history.pushState({}, "", url);
+    }
+  };
 
-      <div className="workspace">
-        <Sidebar />
+  const handleBackToDashboard = () => {
+    setCurrentDocId(null);
+    const url = new URL(window.location);
+    url.searchParams.delete("doc");
+    window.history.pushState({}, "", url);
+  };
 
-        <Editor
-          saveStatus={saveStatus}
-          setSaveStatus={setSaveStatus}
-        />
+  if (isLoading) {
+    return (
+      <div className="app-loading-screen">
+        <div className="spinner" />
+        <span>Initializing SyncDoc Engine...</span>
       </div>
-    </div>
-  );
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <AuthPage />;
+  }
+
+  if (currentDocId) {
+    return (
+      <Editor
+        documentId={currentDocId}
+        onBack={handleBackToDashboard}
+      />
+    );
+  }
+
+  return <DocumentDashboard onSelectDocument={handleSelectDoc} />;
 }
 
-export default App;
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
+  );
+}

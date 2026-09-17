@@ -1,13 +1,18 @@
 const http = require("http");
+const path = require("path");
 const dotenv = require("dotenv");
+
+// Load .env explicitly relative to current file directory and cwd
+dotenv.config({ path: path.join(__dirname, "../.env") });
+dotenv.config();
+
 const jwt = require("jsonwebtoken");
 const { Server } = require("socket.io");
 const app = require("./app");
 const connectDB = require("./config/db");
 const { registerCollaborationSocket } = require("./websocket/collaboration");
 
-dotenv.config();
-
+const JWT_SECRET = process.env.JWT_SECRET || "syncdoc_super_secret_jwt_key_2026";
 const PORT = process.env.PORT || 5000;
 const retryMongoConnection = () => {
   const retry = async () => {
@@ -43,7 +48,7 @@ const startServer = () => {
     }
 
     try {
-      socket.data.user = jwt.verify(token, process.env.JWT_SECRET);
+      socket.data.user = jwt.verify(token, process.env.JWT_SECRET || "syncdoc_super_secret_jwt_key_2026");
       next();
     } catch (error) {
       next(new Error("Invalid or expired token"));

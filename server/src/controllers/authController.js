@@ -2,11 +2,13 @@ const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
+const getJwtSecret = () => process.env.JWT_SECRET || "syncdoc_super_secret_jwt_key_2026";
+
 // Generate JWT
 const generateToken = (userId) => {
   return jwt.sign(
     { userId },
-    process.env.JWT_SECRET,
+    getJwtSecret(),
     { expiresIn: "7d" }
   );
 };
@@ -158,8 +160,25 @@ const getMe = async (req, res) => {
   }
 };
 
+// GET ALL USERS (for collaboration sharing search)
+const getAllUsers = async (req, res) => {
+  try {
+    const currentUserId = req.user?.userId;
+    const filter = currentUserId ? { _id: { $ne: currentUserId } } : {};
+    const users = await User.find(filter).select("name email").limit(50);
+    res.status(200).json(users);
+  } catch (error) {
+    console.error("Fetch users failed:", error.name, error.message);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
   getMe,
+  getAllUsers,
 };

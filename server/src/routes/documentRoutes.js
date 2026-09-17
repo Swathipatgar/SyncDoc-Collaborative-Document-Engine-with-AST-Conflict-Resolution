@@ -8,13 +8,14 @@ const {
   removeCollaborator,
   exportHtml,
   exportPdf,
+  deleteDocument,
 } = require("../controllers/documentController");
 const { protect } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
 router.route("/").get(protect, getAllDocuments).post(protect, createNewDocument);
-router.route("/:id").get(protect, getDocument).put(protect, updateDocumentContent);
+router.route("/:id").get(protect, getDocument).put(protect, updateDocumentContent).delete(protect, deleteDocument);
 router.post("/:id/share", protect, shareDocument);
 router.delete("/:id/collaborators/:collaboratorId", protect, removeCollaborator);
 router.get("/:id/export/html", protect, exportHtml);

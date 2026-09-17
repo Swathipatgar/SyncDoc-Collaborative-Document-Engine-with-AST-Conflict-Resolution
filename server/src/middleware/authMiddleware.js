@@ -1,5 +1,7 @@
 const jwt = require("jsonwebtoken");
 
+const getJwtSecret = () => process.env.JWT_SECRET || "syncdoc_super_secret_jwt_key_2026";
+
 const protect = (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -13,7 +15,7 @@ const protect = (req, res, next) => {
 
     const token = authHeader.split(" ")[1];
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, getJwtSecret());
 
     req.user = decoded;
 

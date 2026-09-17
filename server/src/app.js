@@ -1,13 +1,17 @@
+const path = require("path");
+const dotenv = require("dotenv");
+
+// Load .env explicitly before importing routes/controllers
+dotenv.config({ path: path.join(__dirname, "../.env") });
+dotenv.config();
+
 const express = require("express");
 const cors = require("cors");
-const dotenv = require("dotenv");
 
 const authRoutes = require("./routes/authRoutes");
 const documentRoutes = require("./routes/documentRoutes");
 const versionRoutes = require("./routes/versionRoutes");
 const { notFound, errorHandler } = require("./middleware/errorMiddleware");
-
-dotenv.config();
 
 const app = express();
 

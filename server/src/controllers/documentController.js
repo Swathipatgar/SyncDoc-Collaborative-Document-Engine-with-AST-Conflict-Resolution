@@ -8,11 +8,13 @@ const {
   isValidDocumentId,
 } = require("../services/documentService");
 const User = require("../models/User");
+const Document = require("../models/Document");
+const DocumentVersion = require("../models/DocumentVersion");
 const mongoose = require("mongoose");
 const { createCheckpointVersion } = require("../services/versionService");
 const yjsService = require("../services/yjsService");
 const { buildDiffSummary, getContentProjection } = require("../utils/ast");
-const { contentToHtml } = require("../utils/export");
+const { contentToHtml, renderAstToPdf } = require("../utils/export");
 
 const createNewDocument = async (req, res, next) => {
   try {
@@ -168,8 +170,36 @@ const exportPdf = async (req, res, next) => {
     const { document, access } = await getDocumentAccess(req.params.id, req.user.userId);
     if (!document) return res.status(404).json({ message: "Document not found" });
     if (!access?.canRead) return res.status(403).json({ message: "You do not have access to this document" });
-    return res.status(501).json({ message: "PDF export is not available in this deployment" });
-  } catch (error) { next(error); }
+
+    await yjsService.ensureLoaded(req.params.id, () => getDocumentPersistenceState(req.params.id));
+    const content = yjsService.getText(req.params.id) || document.content;
+
+    const safeTitle = (document.title || "document").replace(/[^a-zA-Z0-9_-]/g, "_");
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${encodeURIComponent(safeTitle)}.pdf"`);
+
+    renderAstToPdf(document.title, content, res);
+  } catch (error) {
+    next(error);
+  }
+};
+
+const deleteDocument = async (req, res, next) => {
+  try {
+    if (!isValidDocumentId(req.params.id)) return res.status(400).json({ message: "Invalid document id" });
+    const { document, access } = await getDocumentAccess(req.params.id, req.user.userId);
+    if (!document) return res.status(404).json({ message: "Document not found" });
+    if (!access?.canManage) {
+      return res.status(403).json({ message: "Only the document owner can delete this document" });
+    }
+
+    await Document.findByIdAndDelete(req.params.id);
+    await DocumentVersion.deleteMany({ documentId: req.params.id });
+
+    res.json({ message: "Document deleted successfully", documentId: req.params.id });
+  } catch (error) {
+    next(error);
+  }
 };
 
 module.exports = {
@@ -181,4 +211,5 @@ module.exports = {
   removeCollaborator,
   exportHtml,
   exportPdf,
+  deleteDocument,
 };

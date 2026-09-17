@@ -59,7 +59,7 @@ const getDocumentById = async (documentId, userId) => {
 
 const getUserDocuments = async (userId) => {
   return Document.find({
-    $or: [{ owner: userId }, { collaborators: userId }, { "collaborators.user": userId }],
+    $or: [{ owner: userId }, { "collaborators.user": userId }],
   }).populate("owner", "name email").populate("collaborators.user", "name email");
 };
 

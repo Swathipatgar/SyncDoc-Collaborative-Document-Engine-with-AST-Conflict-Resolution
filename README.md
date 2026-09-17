@@ -1,16 +1,20 @@
-# React + Vite
+# SyncDoc: Collaborative Document Engine with AST Conflict Resolution
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**SyncDoc** is a real-time collaborative document engine designed to solve destructive overwrites and sync conflicts in multi-user document workflows.
 
-Currently, two official plugins are available:
+Refer to the main [README.md](../README.md) in the project root for full architecture documentation, test results, and live pairing guides.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Quick Start
+```bash
+# Backend
+cd server
+npm install
+node src/seed.js
+npm run dev
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+# Frontend
+cd ..
+npm install
+npm run dev
+```
+Open [http://localhost:5173](http://localhost:5173).

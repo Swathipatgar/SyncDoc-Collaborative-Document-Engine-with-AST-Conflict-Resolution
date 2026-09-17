@@ -55,7 +55,7 @@ const buildDiffSummary = (previousContent, nextContent) => {
 
 const AST_NODE_TYPES = new Set([
   "document", "root", "section", "paragraph", "text", "heading", "code", "code-block",
-  "list", "list-item", "bold", "italic", "link",
+  "list", "list-item", "bold", "italic", "link", "callout",
 ]);
 const MAX_AST_DEPTH = 64;
 const MAX_AST_NODES = 10000;
@@ -79,7 +79,7 @@ const validateNode = (node, depth = 0, state = { count: 0 }) => {
 
   if (node.type === "heading" && (!Number.isInteger(node.level) || node.level < 1 || node.level > 6)) return false;
   if (node.type === "link" && (typeof node.url !== "string" || !/^(https?:|mailto:)/i.test(node.url))) return false;
-  if (["list", "list-item", "paragraph", "heading", "code", "code-block", "bold", "italic", "link"].includes(node.type) && node.children === undefined && node.value === undefined) return false;
+  if (["list", "list-item", "paragraph", "heading", "code", "code-block", "bold", "italic", "link", "callout"].includes(node.type) && node.children === undefined && node.value === undefined) return false;
 
   return true;
 };
